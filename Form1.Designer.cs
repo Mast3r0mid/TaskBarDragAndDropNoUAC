@@ -1,0 +1,253 @@
+﻿namespace CSHARPWindowsFormsApp1
+{
+    partial class MainForm
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.MouseIsDragging = new System.Windows.Forms.Timer(this.components);
+            this.MouseInTaskBarClick = new System.Windows.Forms.Timer(this.components);
+            this.checkbox_Runatstart = new System.Windows.Forms.CheckBox();
+            this.checkbox_ClickPinApp = new System.Windows.Forms.CheckBox();
+            this.txt_mousehook = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.txt_clickInterval = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.btn_savesetting = new System.Windows.Forms.Button();
+            this.btn_resetsetting = new System.Windows.Forms.Button();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.button1 = new System.Windows.Forms.Button();
+            this.button2 = new System.Windows.Forms.Button();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
+            this.SuspendLayout();
+            // 
+            // notifyIcon1
+            // 
+            this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
+            this.notifyIcon1.BalloonTipText = "TaskBar DragAndDrop(NO UAC)";
+            this.notifyIcon1.BalloonTipTitle = "TaskBar DragAndDrop(NO UAC)";
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "TaskBar DragAndDrop(NO UAC)";
+            this.notifyIcon1.Visible = true;
+            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
+            // 
+            // MouseIsDragging
+            // 
+            this.MouseIsDragging.Enabled = true;
+            this.MouseIsDragging.Interval = 5;
+            this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
+            // 
+            // MouseInTaskBarClick
+            // 
+            this.MouseInTaskBarClick.Tick += new System.EventHandler(this.MouseInTaskBarClick_Tick);
+            // 
+            // checkbox_Runatstart
+            // 
+            this.checkbox_Runatstart.AutoSize = true;
+            this.checkbox_Runatstart.Location = new System.Drawing.Point(12, 12);
+            this.checkbox_Runatstart.Name = "checkbox_Runatstart";
+            this.checkbox_Runatstart.Size = new System.Drawing.Size(142, 17);
+            this.checkbox_Runatstart.TabIndex = 0;
+            this.checkbox_Runatstart.Text = "Run at Windows Startup";
+            this.checkbox_Runatstart.UseVisualStyleBackColor = true;
+            this.checkbox_Runatstart.CheckedChanged += new System.EventHandler(this.checkbox_Runatstart_CheckedChanged);
+            // 
+            // checkbox_ClickPinApp
+            // 
+            this.checkbox_ClickPinApp.AutoSize = true;
+            this.checkbox_ClickPinApp.Location = new System.Drawing.Point(12, 35);
+            this.checkbox_ClickPinApp.Name = "checkbox_ClickPinApp";
+            this.checkbox_ClickPinApp.Size = new System.Drawing.Size(121, 17);
+            this.checkbox_ClickPinApp.TabIndex = 1;
+            this.checkbox_ClickPinApp.Text = "Automate Icon Click";
+            this.checkbox_ClickPinApp.UseVisualStyleBackColor = true;
+            this.checkbox_ClickPinApp.CheckedChanged += new System.EventHandler(this.checkbox_ClickPinApp_CheckedChanged);
+            // 
+            // txt_mousehook
+            // 
+            this.txt_mousehook.Location = new System.Drawing.Point(153, 58);
+            this.txt_mousehook.MaxLength = 4;
+            this.txt_mousehook.Name = "txt_mousehook";
+            this.txt_mousehook.Size = new System.Drawing.Size(49, 20);
+            this.txt_mousehook.TabIndex = 2;
+            this.txt_mousehook.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txt_mousehook.WordWrap = false;
+            this.txt_mousehook.TextChanged += new System.EventHandler(this.txt_mousehook_TextChanged);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(25, 61);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(122, 13);
+            this.label1.TabIndex = 3;
+            this.label1.Text = "Mouse Hook Interval ms";
+            // 
+            // txt_clickInterval
+            // 
+            this.txt_clickInterval.Location = new System.Drawing.Point(153, 84);
+            this.txt_clickInterval.MaxLength = 4;
+            this.txt_clickInterval.Name = "txt_clickInterval";
+            this.txt_clickInterval.Size = new System.Drawing.Size(49, 20);
+            this.txt_clickInterval.TabIndex = 4;
+            this.txt_clickInterval.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txt_clickInterval.WordWrap = false;
+            this.txt_clickInterval.TextChanged += new System.EventHandler(this.txt_clickInterval_TextChanged);
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(25, 87);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(109, 13);
+            this.label2.TabIndex = 5;
+            this.label2.Text = "Auto Click Interval ms";
+            // 
+            // btn_savesetting
+            // 
+            this.btn_savesetting.Location = new System.Drawing.Point(208, 61);
+            this.btn_savesetting.Name = "btn_savesetting";
+            this.btn_savesetting.Size = new System.Drawing.Size(75, 39);
+            this.btn_savesetting.TabIndex = 6;
+            this.btn_savesetting.Text = "Save Changes";
+            this.btn_savesetting.UseVisualStyleBackColor = true;
+            this.btn_savesetting.Visible = false;
+            this.btn_savesetting.Click += new System.EventHandler(this.btn_savesetting_Click);
+            // 
+            // btn_resetsetting
+            // 
+            this.btn_resetsetting.Location = new System.Drawing.Point(289, 61);
+            this.btn_resetsetting.Name = "btn_resetsetting";
+            this.btn_resetsetting.Size = new System.Drawing.Size(75, 39);
+            this.btn_resetsetting.TabIndex = 7;
+            this.btn_resetsetting.Text = "Reset Default";
+            this.btn_resetsetting.UseVisualStyleBackColor = true;
+            this.btn_resetsetting.Visible = false;
+            this.btn_resetsetting.Click += new System.EventHandler(this.btn_resetsetting_Click);
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = global::TaskBarDragAndDrop.Properties.Resources.donate1;
+            this.pictureBox2.Location = new System.Drawing.Point(283, 12);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(81, 40);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 10;
+            this.pictureBox2.TabStop = false;
+            this.pictureBox2.Click += new System.EventHandler(this.pictureBox2_Click);
+            this.pictureBox2.MouseHover += new System.EventHandler(this.pictureBox2_MouseHover);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = global::TaskBarDragAndDrop.Properties.Resources.drag_and_drop;
+            this.pictureBox1.Location = new System.Drawing.Point(283, 197);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(81, 63);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 9;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
+            this.pictureBox1.MouseHover += new System.EventHandler(this.pictureBox1_MouseHover);
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(12, 237);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(63, 23);
+            this.button1.TabIndex = 11;
+            this.button1.Text = "About Me";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(196, 12);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(81, 40);
+            this.button2.TabIndex = 12;
+            this.button2.Text = "Check For Update";
+            this.button2.UseVisualStyleBackColor = true;
+            this.button2.Click += new System.EventHandler(this.button2_Click);
+            // 
+            // MainForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.button2);
+            this.Controls.Add(this.button1);
+            this.Controls.Add(this.pictureBox2);
+            this.Controls.Add(this.pictureBox1);
+            this.Controls.Add(this.btn_resetsetting);
+            this.Controls.Add(this.btn_savesetting);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.txt_clickInterval);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.txt_mousehook);
+            this.Controls.Add(this.checkbox_ClickPinApp);
+            this.Controls.Add(this.checkbox_Runatstart);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
+            this.Name = "MainForm";
+            this.ShowInTaskbar = false;
+            this.Text = "TaskBar DragAndDrop(NO UAC)";
+            this.WindowState = System.Windows.Forms.FormWindowState.Minimized;
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.Resize += new System.EventHandler(this.MainForm_Resize);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        #endregion
+        private System.Windows.Forms.NotifyIcon notifyIcon1;
+        private System.Windows.Forms.Timer MouseIsDragging;
+        private System.Windows.Forms.Timer MouseInTaskBarClick;
+        private System.Windows.Forms.CheckBox checkbox_Runatstart;
+        private System.Windows.Forms.CheckBox checkbox_ClickPinApp;
+        private System.Windows.Forms.TextBox txt_mousehook;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox txt_clickInterval;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button btn_savesetting;
+        private System.Windows.Forms.Button btn_resetsetting;
+        private System.Windows.Forms.PictureBox pictureBox1;
+        private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button button2;
+    }
+}
+
