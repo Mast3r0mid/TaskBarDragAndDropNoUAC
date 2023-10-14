@@ -462,10 +462,12 @@ namespace TaskBarDragAndDropNoUAC
                 }
                 else
                 {
+                    aboutForm.Close();
                    // this.Hide();
                     this.WindowState = FormWindowState.Minimized;
                     mainFormOpen = false;
                     ShowInTaskbar = false;
+                   
 
                 }
                
