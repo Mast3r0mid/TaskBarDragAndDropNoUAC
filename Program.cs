@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CSHARPWindowsFormsApp1
+namespace TaskBarDragAndDropNoUAC
 {
     internal static class Program
     {

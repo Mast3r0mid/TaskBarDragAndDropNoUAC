@@ -70,5 +70,17 @@ namespace TaskBarDragAndDrop {
                 this["clickInterval"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool closetotray {
+            get {
+                return ((bool)(this["closetotray"]));
+            }
+            set {
+                this["closetotray"] = value;
+            }
+        }
     }
 }

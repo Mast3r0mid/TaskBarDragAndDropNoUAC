@@ -79,5 +79,15 @@ namespace TaskBarDragAndDrop.Properties {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
+        internal static System.Drawing.Bitmap GitHub_Logo_650x366 {
+            get {
+                object obj = ResourceManager.GetObject("GitHub_Logo_650x366", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
     }
 }

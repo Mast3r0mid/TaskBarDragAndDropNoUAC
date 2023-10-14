@@ -6,15 +6,15 @@ using System.Windows.Automation;
 using System.Runtime.InteropServices;
 using TaskBarDragAndDrop;
 using Microsoft.Win32;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Security.Policy;
 using System.Diagnostics;
 using TaskBarDragAndDrop.Properties;
+using System.ComponentModel;
+using System.Reflection;
 
-namespace CSHARPWindowsFormsApp1
+namespace TaskBarDragAndDropNoUAC
 {
 
 
@@ -23,20 +23,61 @@ namespace CSHARPWindowsFormsApp1
 
 
 
-        ///////
+        ////////////////////////////////
         //
         // DLL imports and Global Vars
         //
-        ///////
+        ////////////////////////////////
+
+
+
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
+        const int KEYEVENTF_KEYUP = 0x2;
+        const int VK_LWIN = 0x5B; // Left Win key
+        const int VK_T = 0x54; // 'T' key
+
+        [DllImport("user32.dll")]
+        public static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
         private const int VK_LBUTTON = 0x01;
         private static bool isDragging = false;
         private static System.Drawing.Point dragStartPoint = System.Drawing.Point.Empty;
-        private static bool ImDone=false;
+        private static bool ImDone,focused=false;
         private static Rect TrayRectangle;
         private static AutomationElement ChosentaskIcon;
-        private static int tik = 0;
+        static Mutex mutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC)");
+        static Mutex aboutMutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC) AboutBoxMutex");
+        public bool aboutBoxOpen ,mainFormOpen ,myEnd = false;
+         AboutBox1 aboutForm = new AboutBox1();
+        private void ShowAboutPage()
+        {
+            
+                if (aboutMutex.WaitOne(TimeSpan.Zero, true) && !aboutBoxOpen)
+            {
+              
+                {
+                    aboutBoxOpen = true; // Set the flag to indicate that the About box is open.
+                    aboutForm.FormClosed += (s, ev) => aboutBoxOpen = false;
+                    aboutForm.ShowDialog();
+                    aboutMutex.ReleaseMutex();
+                }
+            }
+            else
+            {
+                    aboutForm.Select();
+
+            }
+        }
+
         public MainForm()
         {
             InitializeComponent();
@@ -65,8 +106,7 @@ namespace CSHARPWindowsFormsApp1
             System.Windows.Point SystemWindowsCursorPoint = ConvertDraw2system(Cursor.Position);// new System.Windows.Point(int.Parse(cursorXsystempnt), int.Parse(cursorYsystempnt));
 
             //check if mouse is in Icon area
-            
-
+        
             if (showme.Contains(SystemWindowsCursorPoint) && isDragging )
             {
                
@@ -77,7 +117,6 @@ namespace CSHARPWindowsFormsApp1
             {
                 return false;
             }
-
            
         }
 
@@ -92,10 +131,9 @@ namespace CSHARPWindowsFormsApp1
             Screen screen = Screen.FromPoint(cursorpos);
             String TrayhWnd = "";
 
-            if (screen.Primary)
+            if (screen.Primary) // use active desktop
             {
                 TrayhWnd = "Shell_TrayWnd";
-
 
             }
             else
@@ -108,23 +146,23 @@ namespace CSHARPWindowsFormsApp1
 
             // Search for the main window of the target application
             AutomationElement targetAppWindow = AutomationElement.RootElement.FindFirst(System.Windows.Automation.TreeScope.Children, classNameCondition);
-            if (justtray == 28 )
-            { // if i only need taskbar area // random number // my fav number :)
-
-                if(targetAppWindow == null)
-                {
-                    //if null error handling
-                    return 0;
-                }
-                TrayRectangle = targetAppWindow.Current.BoundingRectangle;
-                return 1;
-            }
+            
             if (targetAppWindow != null)
             {
                 PropertyCondition taskbarelements = new PropertyCondition(AutomationElement.ClassNameProperty, "Taskbar.TaskListButtonAutomationPeer");
 
                 // Find all Icons in the Taskbar by its class name
                 AutomationElementCollection panel = targetAppWindow.FindAll(System.Windows.Automation.TreeScope.Descendants, taskbarelements);
+
+                if (justtray == 28 && panel.Count > 0)
+                { // if i only need taskbar area // random number // my fav number :)
+
+                    TrayRectangle = new Rect(panel[0].Current.BoundingRectangle.Left, panel[0].Current.BoundingRectangle.Top, panel[panel.Count - 1].Current.BoundingRectangle.Right, panel[0].Current.BoundingRectangle.Bottom);
+                    
+
+                   // TrayRectangle = targetAppWindow.Current.BoundingRectangle;
+                    return 1;
+                }
 
                 // for each Icon in Task Bar we found
 
@@ -134,16 +172,40 @@ namespace CSHARPWindowsFormsApp1
                     //if mouse is over the Icon in TaskBar  and draging and dragstart and current is not the dame
        
                     Rect itemrect = taskbaricons.Current.BoundingRectangle;
-
+                    
                     /// check AutomationID if its a real icon not a widget or other items
                     if (taskbaricons.Current.AutomationId.Contains("Appid:") && CheckMousearea(itemrect) && isDragging && Cursor.Position != dragStartPoint)
 
                     {
-                        //save area in global val, Just in case
+                
+                        //save area in global val, Just in case , maybe for future
                         ChosentaskIcon = taskbaricons;
+                        //use old trick to create taskSwitch thumbnail live preview
+                        
+                        while (!focused)
+                        {
+                            
+                            SetForegroundWindow(FindWindow(TrayhWnd, null));
+                            Thread.Sleep(1);
 
-                        //focus on icon
-                        taskbaricons.SetFocus();
+                            //check if item focused
+                            if (taskbaricons.Current.HasKeyboardFocus)
+                            {
+                                focused= true;
+                            }
+                            else {
+                               // Simulate releasing the Win+T key
+                                keybd_event(VK_LWIN, 0, 0, 0);
+                                keybd_event(VK_T, 0, 0, 0);
+                                Thread.Sleep(1);
+                                // Simulate releasing the Win+T key
+                                keybd_event(VK_T, 0, KEYEVENTF_KEYUP, 0);
+                                keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
+                                taskbaricons.SetFocus();
+                            }
+
+                        }
+
 
                         if (Conf.Default.ClickPinApp) // if auto click enabled
                         {
@@ -159,10 +221,13 @@ namespace CSHARPWindowsFormsApp1
                             }
                             else
                             {
+                                
                                 ImDone = false;
                                 return 0;
                             }
                         }
+
+                        
                         //much better this way
                         //for ever click any icon in taskbar as long as LBTN is down
                         //ImDone = true;
@@ -188,55 +253,54 @@ namespace CSHARPWindowsFormsApp1
     return 1;
 }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private void MainForm_Load(object sender, EventArgs e)
         {
             // Specify properties to identify the target application's main window by class name
-            
+            if (mutex.WaitOne(TimeSpan.Zero, true))
+            {
+                mutex.ReleaseMutex();
+               
+            }
+            else
+            {
+                MessageBox.Show("Another instance of the application is already running.", "Application Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                this.Close();
+            }
+
             checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
+            checkbox_closeTray.Checked = Conf.Default.closetotray;
             checkbox_Runatstart.Checked = Conf.Default.Runatstart;
             txt_mousehook.Text = Conf.Default.mousehookint.ToString();
             txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
             btn_resetsetting.Visible = false;
             btn_savesetting.Visible = false;
             ShowInTaskbar = false;
-           
 
+            
         }
-
-      
-
-        private void notifyIcon1_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-
-           
-            WindowState = FormWindowState.Normal;
-            ShowInTaskbar = true;
-
-
-
-        }
-
+       
         private void MouseIsDragging_Tick(object sender, EventArgs e)
         { //chech if LeftBtn is  pressed (  drag or Start dragging)
             if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
             {
 
-               // FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
+                FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
                 if (!isDragging && !CheckMousearea(TrayRectangle)) // if no drag happend before and mouse is not on taskbar
                 {
-                    isDragging = true;
-                    //check drag start position
-                    dragStartPoint = Cursor.Position;//save drag start point into global val
-                                  
+                   
+                        isDragging = true;
+                        //check drag start position
+                        dragStartPoint = Cursor.Position;//save drag start point into global val
+
                     
                 }
 
-                FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle
+                
                 
                 //temp rect from mouse drag start pos
-                Rect tmprect = new Rect(ConvertDraw2system(dragStartPoint).X, ConvertDraw2system(dragStartPoint).Y, 1, 1);
+                Rect tmprect = new Rect(ConvertDraw2system(dragStartPoint).X+2, ConvertDraw2system(dragStartPoint).Y+2, 1, 1);
                 if (isDragging && CheckMousearea(TrayRectangle) && !TrayRectangle.Contains(tmprect) && !ImDone){
-
+                    focused = false;
                     FindTaskbar(1); //random number except 28
 
                 }
@@ -250,6 +314,7 @@ namespace CSHARPWindowsFormsApp1
                 if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) == 0) {
                     isDragging = false;
                     ImDone= false;
+                    focused = false;
                     
                 }
             }
@@ -350,8 +415,10 @@ namespace CSHARPWindowsFormsApp1
 
         private void MainForm_Resize(object sender, EventArgs e)
         {
-            if( WindowState== FormWindowState.Minimized ) {
+            if( this.WindowState== FormWindowState.Minimized ) {
+                this.Hide();
                 ShowInTaskbar = false;
+                mainFormOpen = false;
             }
             
         }
@@ -378,8 +445,102 @@ namespace CSHARPWindowsFormsApp1
 
         private void button1_Click(object sender, EventArgs e)
         {
-            AboutBox1 aboutBox1 = new AboutBox1();
-            aboutBox1.Show();
+            ShowAboutPage();
+
+        }
+
+        private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
+        {
+            if(e.Button == MouseButtons.Left)
+            {
+                if(!mainFormOpen)
+                {
+                    this.Show();
+                    WindowState = FormWindowState.Normal;
+                    mainFormOpen = true;
+                    ShowInTaskbar = true;
+                }
+                else
+                {
+                   // this.Hide();
+                    this.WindowState = FormWindowState.Minimized;
+                    mainFormOpen = false;
+                    ShowInTaskbar = false;
+
+                }
+               
+            }
+           
+            
+        }
+
+        private void ntf_exit_Click(object sender, EventArgs e)
+        {
+            myEnd = true;
+            this.Close();
+        }
+
+        private void ntf_about_Click(object sender, EventArgs e)
+        {
+            ShowAboutPage();
+        }
+
+        private void ntf_issue_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC/issues");
+        }
+
+        private void ntf_checkupdate_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC");
+        }
+
+        private void checkbox_closeTray_CheckedChanged(object sender, EventArgs e)
+        {
+            if (checkbox_closeTray.Checked)
+            {
+                Conf.Default.closetotray= true;
+                Conf.Default.Save();
+            }
+            else
+            {
+                Conf.Default.closetotray = false; 
+                Conf.Default.Save();
+            }
+        }
+
+        private void pictureBox3_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC");
+
+        }
+
+        private void pictureBox3_MouseHover(object sender, EventArgs e)
+        {
+            toolTip1.Show("Find me on GitHub", pictureBox3);
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (Conf.Default.closetotray && !myEnd)
+            {
+                e.Cancel = true;
+                this.Hide();
+            }
+        }
+
+        private void ntf_settings_Click(object sender, EventArgs e)
+        {
+
+            if (!mainFormOpen)
+            {
+                this.Show();
+                WindowState = FormWindowState.Normal; ;
+                mainFormOpen = true;
+                ShowInTaskbar = true;
+            }
+  
+            
         }
 
         private void button2_Click(object sender, EventArgs e)

@@ -4,8 +4,10 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using TaskBarDragAndDropNoUAC;
 
 namespace TaskBarDragAndDrop
 {
@@ -102,9 +104,17 @@ namespace TaskBarDragAndDrop
         }
         #endregion
 
+      
+
         private void okButton_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void AboutBox1_Load(object sender, EventArgs e)
+        {
+           
+
         }
     }
 }

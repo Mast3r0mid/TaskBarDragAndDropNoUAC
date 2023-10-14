@@ -1,4 +1,4 @@
-﻿namespace CSHARPWindowsFormsApp1
+﻿namespace TaskBarDragAndDropNoUAC
 {
     partial class MainForm
     {
@@ -31,6 +31,12 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.ntf_settings = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_checkupdate = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_issue = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_about = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.MouseIsDragging = new System.Windows.Forms.Timer(this.components);
             this.MouseInTaskBarClick = new System.Windows.Forms.Timer(this.components);
             this.checkbox_Runatstart = new System.Windows.Forms.CheckBox();
@@ -42,10 +48,14 @@
             this.btn_savesetting = new System.Windows.Forms.Button();
             this.btn_resetsetting = new System.Windows.Forms.Button();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-            this.pictureBox2 = new System.Windows.Forms.PictureBox();
-            this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
+            this.checkbox_closeTray = new System.Windows.Forms.CheckBox();
+            this.pictureBox3 = new System.Windows.Forms.PictureBox();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.contextMenuStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
@@ -55,10 +65,58 @@
             this.notifyIcon1.BalloonTipIcon = System.Windows.Forms.ToolTipIcon.Info;
             this.notifyIcon1.BalloonTipText = "TaskBar DragAndDrop(NO UAC)";
             this.notifyIcon1.BalloonTipTitle = "TaskBar DragAndDrop(NO UAC)";
+            this.notifyIcon1.ContextMenuStrip = this.contextMenuStrip1;
             this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
             this.notifyIcon1.Text = "TaskBar DragAndDrop(NO UAC)";
             this.notifyIcon1.Visible = true;
-            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
+            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseClick);
+            // 
+            // contextMenuStrip1
+            // 
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.ntf_settings,
+            this.ntf_checkupdate,
+            this.ntf_issue,
+            this.ntf_about,
+            this.ntf_exit});
+            this.contextMenuStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(175, 114);
+            // 
+            // ntf_settings
+            // 
+            this.ntf_settings.Name = "ntf_settings";
+            this.ntf_settings.Size = new System.Drawing.Size(174, 22);
+            this.ntf_settings.Text = "Open TaskBar D&&D";
+            this.ntf_settings.Click += new System.EventHandler(this.ntf_settings_Click);
+            // 
+            // ntf_checkupdate
+            // 
+            this.ntf_checkupdate.Name = "ntf_checkupdate";
+            this.ntf_checkupdate.Size = new System.Drawing.Size(174, 22);
+            this.ntf_checkupdate.Text = "&Check For Update";
+            this.ntf_checkupdate.Click += new System.EventHandler(this.ntf_checkupdate_Click);
+            // 
+            // ntf_issue
+            // 
+            this.ntf_issue.Name = "ntf_issue";
+            this.ntf_issue.Size = new System.Drawing.Size(174, 22);
+            this.ntf_issue.Text = "&Report Issue";
+            this.ntf_issue.Click += new System.EventHandler(this.ntf_issue_Click);
+            // 
+            // ntf_about
+            // 
+            this.ntf_about.Name = "ntf_about";
+            this.ntf_about.Size = new System.Drawing.Size(174, 22);
+            this.ntf_about.Text = "About";
+            this.ntf_about.Click += new System.EventHandler(this.ntf_about_Click);
+            // 
+            // ntf_exit
+            // 
+            this.ntf_exit.Name = "ntf_exit";
+            this.ntf_exit.Size = new System.Drawing.Size(174, 22);
+            this.ntf_exit.Text = "Exit";
+            this.ntf_exit.Click += new System.EventHandler(this.ntf_exit_Click);
             // 
             // MouseIsDragging
             // 
@@ -94,7 +152,7 @@
             // 
             // txt_mousehook
             // 
-            this.txt_mousehook.Location = new System.Drawing.Point(153, 58);
+            this.txt_mousehook.Location = new System.Drawing.Point(153, 79);
             this.txt_mousehook.MaxLength = 4;
             this.txt_mousehook.Name = "txt_mousehook";
             this.txt_mousehook.Size = new System.Drawing.Size(49, 20);
@@ -106,7 +164,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(25, 61);
+            this.label1.Location = new System.Drawing.Point(25, 82);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(122, 13);
             this.label1.TabIndex = 3;
@@ -114,7 +172,7 @@
             // 
             // txt_clickInterval
             // 
-            this.txt_clickInterval.Location = new System.Drawing.Point(153, 84);
+            this.txt_clickInterval.Location = new System.Drawing.Point(153, 105);
             this.txt_clickInterval.MaxLength = 4;
             this.txt_clickInterval.Name = "txt_clickInterval";
             this.txt_clickInterval.Size = new System.Drawing.Size(49, 20);
@@ -126,7 +184,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(25, 87);
+            this.label2.Location = new System.Drawing.Point(25, 108);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(109, 13);
             this.label2.TabIndex = 5;
@@ -134,7 +192,7 @@
             // 
             // btn_savesetting
             // 
-            this.btn_savesetting.Location = new System.Drawing.Point(208, 61);
+            this.btn_savesetting.Location = new System.Drawing.Point(208, 82);
             this.btn_savesetting.Name = "btn_savesetting";
             this.btn_savesetting.Size = new System.Drawing.Size(75, 39);
             this.btn_savesetting.TabIndex = 6;
@@ -145,7 +203,7 @@
             // 
             // btn_resetsetting
             // 
-            this.btn_resetsetting.Location = new System.Drawing.Point(289, 61);
+            this.btn_resetsetting.Location = new System.Drawing.Point(289, 82);
             this.btn_resetsetting.Name = "btn_resetsetting";
             this.btn_resetsetting.Size = new System.Drawing.Size(75, 39);
             this.btn_resetsetting.TabIndex = 7;
@@ -153,30 +211,6 @@
             this.btn_resetsetting.UseVisualStyleBackColor = true;
             this.btn_resetsetting.Visible = false;
             this.btn_resetsetting.Click += new System.EventHandler(this.btn_resetsetting_Click);
-            // 
-            // pictureBox2
-            // 
-            this.pictureBox2.Image = global::TaskBarDragAndDrop.Properties.Resources.donate1;
-            this.pictureBox2.Location = new System.Drawing.Point(283, 12);
-            this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(81, 40);
-            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox2.TabIndex = 10;
-            this.pictureBox2.TabStop = false;
-            this.pictureBox2.Click += new System.EventHandler(this.pictureBox2_Click);
-            this.pictureBox2.MouseHover += new System.EventHandler(this.pictureBox2_MouseHover);
-            // 
-            // pictureBox1
-            // 
-            this.pictureBox1.Image = global::TaskBarDragAndDrop.Properties.Resources.drag_and_drop;
-            this.pictureBox1.Location = new System.Drawing.Point(283, 197);
-            this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(81, 63);
-            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pictureBox1.TabIndex = 9;
-            this.pictureBox1.TabStop = false;
-            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
-            this.pictureBox1.MouseHover += new System.EventHandler(this.pictureBox1_MouseHover);
             // 
             // button1
             // 
@@ -198,11 +232,60 @@
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
+            // checkbox_closeTray
+            // 
+            this.checkbox_closeTray.AutoSize = true;
+            this.checkbox_closeTray.Location = new System.Drawing.Point(12, 58);
+            this.checkbox_closeTray.Name = "checkbox_closeTray";
+            this.checkbox_closeTray.Size = new System.Drawing.Size(125, 17);
+            this.checkbox_closeTray.TabIndex = 13;
+            this.checkbox_closeTray.Text = "Close to System Tray";
+            this.checkbox_closeTray.UseVisualStyleBackColor = true;
+            this.checkbox_closeTray.CheckedChanged += new System.EventHandler(this.checkbox_closeTray_CheckedChanged);
+            // 
+            // pictureBox3
+            // 
+            this.pictureBox3.Image = global::TaskBarDragAndDrop.Properties.Resources.GitHub_Logo_650x366;
+            this.pictureBox3.Location = new System.Drawing.Point(175, 207);
+            this.pictureBox3.Name = "pictureBox3";
+            this.pictureBox3.Size = new System.Drawing.Size(102, 50);
+            this.pictureBox3.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox3.TabIndex = 14;
+            this.pictureBox3.TabStop = false;
+            this.pictureBox3.Click += new System.EventHandler(this.pictureBox3_Click);
+            this.pictureBox3.MouseHover += new System.EventHandler(this.pictureBox3_MouseHover);
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = global::TaskBarDragAndDrop.Properties.Resources.donate1;
+            this.pictureBox2.Location = new System.Drawing.Point(283, 12);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(81, 40);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 10;
+            this.pictureBox2.TabStop = false;
+            this.pictureBox2.Click += new System.EventHandler(this.pictureBox2_Click);
+            this.pictureBox2.MouseHover += new System.EventHandler(this.pictureBox2_MouseHover);
+            // 
+            // pictureBox1
+            // 
+            this.pictureBox1.Image = global::TaskBarDragAndDrop.Properties.Resources.drag_and_drop;
+            this.pictureBox1.Location = new System.Drawing.Point(283, 207);
+            this.pictureBox1.Name = "pictureBox1";
+            this.pictureBox1.Size = new System.Drawing.Size(81, 63);
+            this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox1.TabIndex = 9;
+            this.pictureBox1.TabStop = false;
+            this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
+            this.pictureBox1.MouseHover += new System.EventHandler(this.pictureBox1_MouseHover);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.pictureBox3);
+            this.Controls.Add(this.checkbox_closeTray);
             this.Controls.Add(this.button2);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.pictureBox2);
@@ -222,8 +305,11 @@
             this.ShowInTaskbar = false;
             this.Text = "TaskBar DragAndDrop(NO UAC)";
             this.WindowState = System.Windows.Forms.FormWindowState.Minimized;
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
+            this.contextMenuStrip1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).EndInit();
             this.ResumeLayout(false);
@@ -248,6 +334,14 @@
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem ntf_settings;
+        private System.Windows.Forms.ToolStripMenuItem ntf_checkupdate;
+        private System.Windows.Forms.ToolStripMenuItem ntf_issue;
+        private System.Windows.Forms.ToolStripMenuItem ntf_about;
+        private System.Windows.Forms.ToolStripMenuItem ntf_exit;
+        private System.Windows.Forms.CheckBox checkbox_closeTray;
+        private System.Windows.Forms.PictureBox pictureBox3;
     }
 }
 
