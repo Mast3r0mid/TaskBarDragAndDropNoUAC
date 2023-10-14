@@ -169,7 +169,9 @@ namespace TaskBarDragAndDropNoUAC
                     Rect itemrect = taskbaricons.Current.BoundingRectangle;
 
                     /// check AutomationID if its a real icon not a widget or other items
-                    if (taskbaricons.Current.AutomationId.Contains("Appid:") && CheckMousearea(itemrect) && isDragging && Cursor.Position != dragStartPoint)
+                    /// 
+                    //Fix 1.0.1 Detect Separate icons in TaskBar : Contains("Window:")
+                    if ((taskbaricons.Current.AutomationId.Contains("Appid:") || taskbaricons.Current.AutomationId.Contains("Window:")) && CheckMousearea(itemrect) && isDragging && Cursor.Position != dragStartPoint)
 
                     {
 
@@ -530,6 +532,7 @@ namespace TaskBarDragAndDropNoUAC
             {
                 e.Cancel = true;
                 this.Hide();
+                mainFormOpen = false;
             }
         }
 
@@ -539,7 +542,7 @@ namespace TaskBarDragAndDropNoUAC
             if (!mainFormOpen)
             {
                 this.Show();
-                WindowState = FormWindowState.Normal; ;
+                WindowState = FormWindowState.Normal;
                 mainFormOpen = true;
                 ShowInTaskbar = true;
             }
