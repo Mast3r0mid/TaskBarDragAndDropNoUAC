@@ -149,15 +149,24 @@ namespace TaskBarDragAndDropNoUAC
                 // Find all Icons in the Taskbar by its class name
                 AutomationElementCollection panel = targetAppWindow.FindAll(System.Windows.Automation.TreeScope.Descendants, taskbarelements);
 
+                //fix 1.0.2 
+
+                if(panel.Count == 0) {
+                    //no panel found
+
+                    return 0;
+                }
+
+
                 if (justtray == 28 && panel.Count > 0)
                 { // if i only need taskbar area // random number // my fav number :)
 
                     TrayRectangle = new Rect(panel[0].Current.BoundingRectangle.Left, panel[0].Current.BoundingRectangle.Top, panel[panel.Count - 1].Current.BoundingRectangle.Right, panel[0].Current.BoundingRectangle.Bottom);
 
 
-                    // TrayRectangle = targetAppWindow.Current.BoundingRectangle;
                     return 1;
                 }
+
 
                 // for each Icon in Task Bar we found
 
@@ -222,10 +231,9 @@ namespace TaskBarDragAndDropNoUAC
                             {
 
                                 ImDone = false;
-                                return 0;
+                                return 1;
                             }
                         }
-
 
                         //much better this way
                         //for ever click any icon in taskbar as long as LBTN is down
@@ -282,11 +290,13 @@ namespace TaskBarDragAndDropNoUAC
 
         private void MouseIsDragging_Tick(object sender, EventArgs e)
         { //chech if LeftBtn is  pressed (  drag or Start dragging)
+
+            int hr = 0;
             if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
             {
 
-                FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
-                if (!isDragging && !CheckMousearea(TrayRectangle)) // if no drag happend before and mouse is not on taskbar
+               hr = FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
+                if (!isDragging && !CheckMousearea(TrayRectangle) && hr ==1) // if no drag happend before and mouse is not on taskbar
                 {
 
                     isDragging = true;

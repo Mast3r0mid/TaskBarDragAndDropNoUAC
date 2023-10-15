@@ -2,10 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version Beta Good First issue 1.0.2 15/10/2023
+- **Fix**: 
+  - Resolved an issue where an 'Invalid Rect Area' was returned for the taskbar.
+  
+
 ## Version 1.0.1 14/10/2023
 
 - **Fix**: 
   - Resolved an issue where icons containing "Window:" were not properly identified While TaskBar Mode is "Never Combine Items".
+  
 
 ## Version 1.0.0 (Initial Release) 13/10/2023
 

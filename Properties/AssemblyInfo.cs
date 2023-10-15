@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyDescription("Enable Drag & Drop functionality on the Taskbar in Windows 11 even when UAC (User Account Control) is turned off or when you are using the Built-in Administrator Account")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TaskBar DragAndDrop(NO UAC)")]
+[assembly: AssemblyProduct("TaskBar DragAndDrop(NO UAC)-beta")]
 [assembly: AssemblyCopyright("Copyright © 2023 Mast3r0mid")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.1")]
-[assembly: AssemblyFileVersion("1.0.1")]
+[assembly: AssemblyVersion("1.0.2")]
+[assembly: AssemblyFileVersion("1.0.2")]
