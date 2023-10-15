@@ -76,6 +76,7 @@ namespace TaskBarDragAndDropNoUAC
         public MainForm()
         {
             InitializeComponent();
+            
         }
 
         private System.Windows.Point ConvertDraw2system(System.Drawing.Point Draw2sys)
@@ -225,12 +226,15 @@ namespace TaskBarDragAndDropNoUAC
 
                                 InvokePattern invokePattern = (InvokePattern)taskbaricons.GetCurrentPattern(InvokePattern.Pattern);
                                 invokePattern.Invoke();
+                                //fix 1.0.3 fix  :Avoid lots of clicks
+                                ImDone = true;
+                                return 1;
 
                             }
                             else
                             {
 
-                                ImDone = false;
+                                ImDone = true;
                                 return 1;
                             }
                         }
@@ -284,6 +288,8 @@ namespace TaskBarDragAndDropNoUAC
             btn_resetsetting.Visible = false;
             btn_savesetting.Visible = false;
             ShowInTaskbar = false;
+            this.Show();
+            
 
 
         }
@@ -295,8 +301,8 @@ namespace TaskBarDragAndDropNoUAC
             if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
             {
 
-               hr = FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
-                if (!isDragging && !CheckMousearea(TrayRectangle) && hr ==1) // if no drag happend before and mouse is not on taskbar
+                hr = FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
+                if (!isDragging && !CheckMousearea(TrayRectangle) && hr == 1) // if no drag happend before and mouse is not on taskbar
                 {
 
                     isDragging = true;
@@ -313,10 +319,20 @@ namespace TaskBarDragAndDropNoUAC
                 if (isDragging && CheckMousearea(TrayRectangle) && !TrayRectangle.Contains(tmprect) && !ImDone)
                 {
                     focused = false;
+                    ImDone = false;
                     FindTaskbar(1); //random number except 28
 
                 }
+                //fix 1.0.3 : continue drag on taskbar after first click
+                if (ChosentaskIcon != null) { 
+                     if (isDragging && !CheckMousearea(ChosentaskIcon.Current.BoundingRectangle))
+                     {
+                             focused = false;
+                         ImDone = false;
+                        FindTaskbar(1); //random number except 28
 
+                     }
+                }
 
 
             }
@@ -477,8 +493,9 @@ namespace TaskBarDragAndDropNoUAC
                 else
                 {
                     aboutForm.Close();
-                    // this.Hide();
+                     //fix 1.0.2-beta
                     this.WindowState = FormWindowState.Minimized;
+                    this.Hide();
                     mainFormOpen = false;
                     ShowInTaskbar = false;
 

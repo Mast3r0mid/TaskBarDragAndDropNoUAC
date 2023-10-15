@@ -2,11 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## Version Beta Good First issue 1.0.2 15/10/2023
+
+## Version  1.0.3-beta 15/10/2023
+- **Fix**: 
+  - Resolve an issue that prevents the continuation of a drag action when the first taskbar item is invoked.
+
+## Version Beta Good First issue 1.0.2-beta 15/10/2023
 - **Fix**: 
   - Resolved an issue where an 'Invalid Rect Area' was returned for the taskbar.
   
-
+  
+  
 ## Version 1.0.1 14/10/2023
 
 - **Fix**: 
