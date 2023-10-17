@@ -124,10 +124,6 @@
             this.MouseIsDragging.Interval = 5;
             this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
             // 
-            // MouseInTaskBarClick
-            // 
-            this.MouseInTaskBarClick.Tick += new System.EventHandler(this.MouseInTaskBarClick_Tick);
-            // 
             // checkbox_Runatstart
             // 
             this.checkbox_Runatstart.AutoSize = true;

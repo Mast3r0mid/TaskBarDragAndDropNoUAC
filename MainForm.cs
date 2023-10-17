@@ -1,13 +1,17 @@
-﻿using Microsoft.Win32;
-using System;
+﻿using System;
+using Microsoft;
+using Microsoft.Win32;
 using System.Diagnostics;
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Forms;
+using System.Xml;
 using TaskBarDragAndDrop;
+using System.Threading.Tasks;
 
 namespace TaskBarDragAndDropNoUAC
 {
@@ -28,9 +32,11 @@ namespace TaskBarDragAndDropNoUAC
 
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
+        const int KEYEVENTF_KEYDOWN = 0x1;
         const int KEYEVENTF_KEYUP = 0x2;
         const int VK_LWIN = 0x5B; // Left Win key
         const int VK_T = 0x54; // 'T' key
+        const int VK_SHIFT = 0x10; //Shift key
 
         [DllImport("user32.dll")]
         public static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
@@ -44,16 +50,29 @@ namespace TaskBarDragAndDropNoUAC
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         private const int VK_LBUTTON = 0x01;
+        private const int VK_RBUTTON = 0x02;
+        private int mouseintsignal = 0x01;
         private static bool isDragging = false;
-        private static System.Drawing.Point dragStartPoint = System.Drawing.Point.Empty;
+        private static System.Drawing.Point dragStartPoint = new System.Drawing.Point(0,0);
         private static bool ImDone, focused = false;
         private static Rect TrayRectangle;
+        private String TrayhWnd = "Shell_TrayWnd";
         private static AutomationElement ChosentaskIcon;
         static Mutex mutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC)");
         static Mutex aboutMutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC) AboutBoxMutex");
         public bool aboutBoxOpen, mainFormOpen, myEnd = false;
         AboutBox1 aboutForm = new AboutBox1();
-        private void ShowAboutPage()
+
+        public System.Windows.Point oldpoint = new System.Windows.Point(0,0);
+
+        AutomationElement DesktopRootElement, SelectedIcon = null;
+        AutomationElementCollection TaskBarIconCollection = null;
+        Rect ItemsRectArea = Rect.Empty;
+       
+        
+        
+        //About
+        private void ShowAboutPage()  
         {
 
             if (aboutMutex.WaitOne(TimeSpan.Zero, true) && !aboutBoxOpen)
@@ -75,25 +94,31 @@ namespace TaskBarDragAndDropNoUAC
 
         public MainForm()
         {
+
             InitializeComponent();
-            
+
         }
 
-        private System.Windows.Point ConvertDraw2system(System.Drawing.Point Draw2sys)
+
+        ///convert system.windows.Points to system.Draw.Point
+        private System.Windows.Point ConvertDraw2system(System.Drawing.Point Draw2sys) 
         {
 
-            ///convert system.windows.Points to system.Draw.Point // Works for me / Need to test more to make sure_
+            // Works for me / Need to test more to make sure_
             //if it really works
             System.Windows.Point Drawsystem = new System.Windows.Point(int.Parse(Draw2sys.X.ToString()), int.Parse(Draw2sys.Y.ToString()));
 
             return Drawsystem;
         }
 
-        private bool CheckMousearea(Rect showme)
+
+
+        // get cursor system.Point by Unhex systemDrawingPoint 
+        private bool CheckCurrentMouseareaWithRectArea(Rect showme)
         {
 
 
-            // get cursor Point by Unhex systemDrawingPoint 
+            // get cursor system.Point by Unhex systemDrawingPoint 
 
             string cursorXsystempnt = Cursor.Position.X.ToString();
             string cursorYsystempnt = Cursor.Position.Y.ToString();
@@ -103,7 +128,7 @@ namespace TaskBarDragAndDropNoUAC
 
             //check if mouse is in Icon area
 
-            if (showme.Contains(SystemWindowsCursorPoint) && isDragging)
+            if (showme.Contains(SystemWindowsCursorPoint))
             {
 
                 return true;
@@ -116,156 +141,60 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
-
-
-
-        private int FindTaskbar(int justtray)
+        // Main Function to find taskBar UI Elements
+        public void FindTaskBarIcons(string DesktophWnd, out AutomationElement DesktopRootElement , out AutomationElementCollection TaskBarIconCollection, out Rect ItemsRectArea)
         {
 
-            //check for Multi-scren and active screen
-            System.Drawing.Point cursorpos = Cursor.Position;
-            Screen screen = Screen.FromPoint(cursorpos);
-            String TrayhWnd = "";
-
-            if (screen.Primary) // use active desktop
+            DesktopRootElement = null; // Initialize to null
+            TaskBarIconCollection = null; // Initialize to null
+            ItemsRectArea = Rect.Empty;
+            try
             {
-                TrayhWnd = "Shell_TrayWnd";
-
-            }
-            else
-            {
-                TrayhWnd = "Shell_SecondaryTrayWnd";
-
-            }
-
-            PropertyCondition classNameCondition = new PropertyCondition(AutomationElement.ClassNameProperty, TrayhWnd);
-
-            // Search for the main window of the target application
-            AutomationElement targetAppWindow = AutomationElement.RootElement.FindFirst(System.Windows.Automation.TreeScope.Children, classNameCondition);
-
-            if (targetAppWindow != null)
-            {
-                PropertyCondition taskbarelements = new PropertyCondition(AutomationElement.ClassNameProperty, "Taskbar.TaskListButtonAutomationPeer");
-
-                // Find all Icons in the Taskbar by its class name
-                AutomationElementCollection panel = targetAppWindow.FindAll(System.Windows.Automation.TreeScope.Descendants, taskbarelements);
-
-                //fix 1.0.2 
-
-                if(panel.Count == 0) {
-                    //no panel found
-
-                    return 0;
-                }
 
 
-                if (justtray == 28 && panel.Count > 0)
-                { // if i only need taskbar area // random number // my fav number :)
+                PropertyCondition classNameCondition = new PropertyCondition(AutomationElement.ClassNameProperty, DesktophWnd);
 
-                    TrayRectangle = new Rect(panel[0].Current.BoundingRectangle.Left, panel[0].Current.BoundingRectangle.Top, panel[panel.Count - 1].Current.BoundingRectangle.Right, panel[0].Current.BoundingRectangle.Bottom);
+                // Search for the main window of the target application
+                DesktopRootElement = AutomationElement.RootElement.FindFirst(System.Windows.Automation.TreeScope.Children, classNameCondition);
 
-
-                    return 1;
-                }
-
-
-                // for each Icon in Task Bar we found
-
-                foreach (AutomationElement taskbaricons in panel)
+                if (DesktopRootElement != null)
                 {
+                    PropertyCondition taskbarelementsCondition = new PropertyCondition(AutomationElement.ClassNameProperty, "Taskbar.TaskListButtonAutomationPeer");
 
-                    //if mouse is over the Icon in TaskBar  and draging and dragstart and current is not the dame
+                    // Find all Icons in the Taskbar by its class name
+                    TaskBarIconCollection = DesktopRootElement.FindAll(System.Windows.Automation.TreeScope.Descendants, taskbarelementsCondition);
+                    double RectSize = 0;
 
-                    Rect itemrect = taskbaricons.Current.BoundingRectangle;
-
-                    /// check AutomationID if its a real icon not a widget or other items
-                    /// 
-                    //Fix 1.0.1 Detect Separate icons in TaskBar : Contains("Window:")
-                    if ((taskbaricons.Current.AutomationId.Contains("Appid:") || taskbaricons.Current.AutomationId.Contains("Window:")) && CheckMousearea(itemrect) && isDragging && Cursor.Position != dragStartPoint)
-
+                    foreach (AutomationElement item in TaskBarIconCollection)
                     {
-
-                        //save area in global val, Just in case , maybe for future
-                        ChosentaskIcon = taskbaricons;
-                        //use old trick to create taskSwitch thumbnail live preview
-
-                        while (!focused)
+                        if (item.Current.AutomationId.Contains("Appid:") || item.Current.AutomationId.Contains("Window:"))
                         {
-
-                            SetForegroundWindow(FindWindow(TrayhWnd, null));
-                            Thread.Sleep(1);
-
-                            //check if item focused
-                            if (taskbaricons.Current.HasKeyboardFocus)
-                            {
-                                focused = true;
-                            }
-                            else
-                            {
-                                // Simulate releasing the Win+T key
-                                keybd_event(VK_LWIN, 0, 0, 0);
-                                keybd_event(VK_T, 0, 0, 0);
-                                Thread.Sleep(1);
-                                // Simulate releasing the Win+T key
-                                keybd_event(VK_T, 0, KEYEVENTF_KEYUP, 0);
-                                keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
-                                taskbaricons.SetFocus();
-                            }
-
+                            RectSize += item.Current.BoundingRectangle.Width;
                         }
-
-
-                        if (Conf.Default.ClickPinApp) // if auto click enabled
-                        {
-                            //due check if you moved your cursor during wait time
-                            System.Drawing.Point LastCursorCheck = Cursor.Position;
-                            Rect tmprect = new Rect(ConvertDraw2system(LastCursorCheck).X, ConvertDraw2system(LastCursorCheck).Y, 10, 10);
-                            Thread.Sleep(Conf.Default.clickInterval);
-                            if (CheckMousearea(tmprect))
-                            {
-
-                                InvokePattern invokePattern = (InvokePattern)taskbaricons.GetCurrentPattern(InvokePattern.Pattern);
-                                invokePattern.Invoke();
-                                //fix 1.0.3 fix  :Avoid lots of clicks
-                                ImDone = true;
-                                return 1;
-
-                            }
-                            else
-                            {
-
-                                ImDone = true;
-                                return 1;
-                            }
-                        }
-
-                        //much better this way
-                        //for ever click any icon in taskbar as long as LBTN is down
-                        //ImDone = true;
-                        return 1;
-
                     }
-                    else
-                    {
-                        //mouse it out of Tray Area
-                    }
+                    ItemsRectArea = new Rect(TaskBarIconCollection[0].Current.BoundingRectangle.X, TaskBarIconCollection[0].Current.BoundingRectangle.Y, RectSize, TaskBarIconCollection[0].Current.BoundingRectangle.Height);
 
                 }
-
-
             }
-            else
+            catch (COMException ex)
+            {
+                // Handle the specific COMException here
+
+                // Log or display error information, or take appropriate action
+            }
+            catch (Exception ex)
             {
 
-                return 0;
-
             }
 
-            return 1;
         }
+
+
+
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+
             // Specify properties to identify the target application's main window by class name
             if (mutex.WaitOne(TimeSpan.Zero, true))
             {
@@ -280,116 +209,260 @@ namespace TaskBarDragAndDropNoUAC
 
             }
 
-            checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
-            checkbox_closeTray.Checked = Conf.Default.closetotray;
-            checkbox_Runatstart.Checked = Conf.Default.Runatstart;
-            txt_mousehook.Text = Conf.Default.mousehookint.ToString();
-            txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
-            btn_resetsetting.Visible = false;
-            btn_savesetting.Visible = false;
-            ShowInTaskbar = false;
-            this.Show();
+            try
+            {
+                checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
+                checkbox_closeTray.Checked = Conf.Default.closetotray;
+                checkbox_Runatstart.Checked = Conf.Default.Runatstart;
+                txt_mousehook.Text = Conf.Default.mousehookint.ToString();
+                txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
+                btn_resetsetting.Visible = false;
+                btn_savesetting.Visible = false;
+                ShowInTaskbar = false;
+                //this.Show();
+            }
+            catch (COMException ex) { 
             
+            }
+            catch (Exception ex)
+            {
+
+            }
 
 
         }
 
-        private void MouseIsDragging_Tick(object sender, EventArgs e)
-        { //chech if LeftBtn is  pressed (  drag or Start dragging)
 
-            int hr = 0;
-            if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
+
+        //check for Multi-scren and active screen
+        private string MyScreen()
+        {
+            string hWsc;
+            Screen screen = Screen.FromPoint(Cursor.Position);
+            if (screen.Primary) // use active desktop
             {
-
-                hr = FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
-                if (!isDragging && !CheckMousearea(TrayRectangle) && hr == 1) // if no drag happend before and mouse is not on taskbar
-                {
-
-                    isDragging = true;
-                    //check drag start position
-                    dragStartPoint = Cursor.Position;//save drag start point into global val
-
-
-                }
-
-
-
-                //temp rect from mouse drag start pos
-                Rect tmprect = new Rect(ConvertDraw2system(dragStartPoint).X + 2, ConvertDraw2system(dragStartPoint).Y + 2, 1, 1);
-                if (isDragging && CheckMousearea(TrayRectangle) && !TrayRectangle.Contains(tmprect) && !ImDone)
-                {
-                    focused = false;
-                    ImDone = false;
-                    FindTaskbar(1); //random number except 28
-
-                }
-                //fix 1.0.3 : continue drag on taskbar after first click
-                if (ChosentaskIcon != null) { 
-                     if (isDragging && !CheckMousearea(ChosentaskIcon.Current.BoundingRectangle))
-                     {
-                             focused = false;
-                         ImDone = false;
-                        FindTaskbar(1); //random number except 28
-
-                     }
-                }
-
+                hWsc = "Shell_TrayWnd";
 
             }
             else
             {
-                //chech if LeftBtn is not pressed ( no drag or finish dragging)
-                if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) == 0)
-                {
-                    isDragging = false;
-                    ImDone = false;
-                    focused = false;
+                hWsc = "Shell_SecondaryTrayWnd";
 
+            }
+            return hWsc;
+        }
+
+        /// Main Function : select Element and invoke or Focus Based on mouse position
+        public void SearchIconAndFocus(AutomationElementCollection TaskbarItemCollectinHolder, System.Drawing.Point MousePos, out AutomationElement SelectedIcon)
+        {
+            SelectedIcon = null; // Initialize to null
+            int counter = 0;
+            Rect MousePosRec = new Rect(MousePos.X, MousePos.Y, 1, 1);
+            bool tmpbool = false;
+           
+
+            try
+            {
+
+                foreach (AutomationElement item in TaskbarItemCollectinHolder)
+                {
+                    tmpbool = false;
+                    if (item.Current.AutomationId.Contains("Appid:") || item.Current.AutomationId.Contains("Window:"))
+                    {
+                        tmpbool = true;
+                        counter++;
+                    }
+                    if ((item.Current.AutomationId.Contains("Appid:") || item.Current.AutomationId.Contains("Window:")) && item.Current.BoundingRectangle.Contains(MousePosRec) && isDragging && Cursor.Position != dragStartPoint)
+
+                    {
+
+                        SelectedIcon = item;
+                        InvokePattern selection = item.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                        if (selection != null)
+                        {
+                            if (Conf.Default.ClickPinApp)
+                            {
+                                Thread.Sleep(Conf.Default.clickInterval);
+                                if (CheckCurrentMouseareaWithRectArea(item.Current.BoundingRectangle))
+                                {
+                                    selection.Invoke();
+                                }
+
+                            }
+                            else
+                            {
+                               // SetForegroundWindow((IntPtr)SelectedIcon.Current.NativeWindowHandle);
+                                while (!SelectedIcon.Current.HasKeyboardFocus)
+                                {
+
+
+                                    if (SelectedIcon.Current.BoundingRectangle.Left > oldpoint.X)
+                                    {
+                                        // Simulate Pressing the Win+T key
+                                        keybd_event(VK_LWIN, 0, KEYEVENTF_KEYDOWN, 0);
+                                        
+                                        keybd_event(VK_T, 0, KEYEVENTF_KEYDOWN, 0);
+                                        Thread.Sleep(1);
+                                        // Simulate releasing the Win+T key
+                                        keybd_event(VK_T, 0, KEYEVENTF_KEYUP, 0);
+                                        
+                                        keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
+                                        
+
+                                    }
+                                    double aaa = ConvertDraw2system(Cursor.Position).X;
+
+                                    if (SelectedIcon.Current.BoundingRectangle.Left + 1 < oldpoint.Y)
+                                    {
+                                        // Simulate Pressing the Win+SHIFT+T key
+                                        keybd_event(VK_LWIN, 0, KEYEVENTF_KEYDOWN, 0);
+                                        
+                                        keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYDOWN, 0);
+                                        
+                                        keybd_event(VK_T, 0, KEYEVENTF_KEYDOWN, 0);
+                                        Thread.Sleep(1);
+
+                                        // Simulate releasing the Win+SHIFT+T key
+                                        keybd_event(VK_T, 0, KEYEVENTF_KEYUP, 0);
+                                        
+                                        keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, 0);
+                                       
+                                        keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
+                                        
+
+                                    }
+
+
+
+
+                                }
+                                oldpoint.X = SelectedIcon.Current.BoundingRectangle.Left;
+                                oldpoint.Y = SelectedIcon.Current.BoundingRectangle.Right;
+                            }
+
+
+
+                        }
+                        break;
+
+                    }
                 }
             }
+            catch (COMException ex)
+            {
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+
         }
 
-        private void MouseInTaskBarClick_Tick(object sender, EventArgs e)
-        {
 
+        // Main Function : mouse move and click check
+        private void MouseIsDragging_Tick(object sender, EventArgs e)
+        { 
+            //chech if LeftBtn is  pressed (  drag or Start dragging)
+            if (SystemInformation.MouseButtonsSwapped) { mouseintsignal = 0x02; }
+            int hr = 0;
+            TrayhWnd = MyScreen();
+            
+            FindTaskBarIcons(TrayhWnd, out DesktopRootElement, out TaskBarIconCollection,out ItemsRectArea );
+            Thread.Sleep(2);
 
+            try
+            {
+                if ((GetAsyncKeyState(mouseintsignal) & 0x8000) != 0) // Check if mouse button is pressed
+                {
+                    if (!CheckCurrentMouseareaWithRectArea(DesktopRootElement.Current.BoundingRectangle) && !isDragging) // Check if the mouse is not within the desktop area
+                    {
+                        dragStartPoint = Cursor.Position; // Store the current mouse position as the drag start point
+                        isDragging = true; // Set the dragging flag to true
+                    }
+                    
+                    if (isDragging && CheckCurrentMouseareaWithRectArea(ItemsRectArea) && !ItemsRectArea.Contains(new Rect(ConvertDraw2system(dragStartPoint).X, ConvertDraw2system(dragStartPoint).Y, 5, 5)) && (SelectedIcon == null || !CheckCurrentMouseareaWithRectArea(SelectedIcon.Current.BoundingRectangle)))
+                    {
+                        // If we are already dragging and the mouse is within the ItemsRectArea but not within the small 5x5 rect around drag start point
+                        SearchIconAndFocus(TaskBarIconCollection, Cursor.Position, out SelectedIcon); // Search for an icon in the taskbar and focus on it
+                    }
+
+                }
+                else if ((GetAsyncKeyState(mouseintsignal) & 0x8000) == 0) // Check if the mouse button is not pressed
+                {
+                    dragStartPoint = new System.Drawing.Point(0, 0); // Reset the drag start point to (0,0)
+                    isDragging = false; // Set the dragging flag to false
+                }
+            }
+            catch (COMException ex)
+            {
+                // Handle the specific COMException here
+                
+                // Log or display error information, or take appropriate action
+            }
+            catch (Exception ex)
+            {
+               
+            }
 
         }
 
+     
+        // add/remove to/from start-up
         private void checkbox_Runatstart_CheckedChanged(object sender, EventArgs e)
         {
-            if (checkbox_Runatstart.Checked)
+
+            try
             {
-
-                RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-                if (key != null)
+                if (checkbox_Runatstart.Checked)
                 {
-                    string appPath = Assembly.GetEntryAssembly().Location;
-                    key.SetValue("TaskBar DragAndDrop(NO UAC)", appPath);
-                    key.Close();
+
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+                    if (key != null)
+                    {
+                        string appPath = Assembly.GetEntryAssembly().Location;
+                        key.SetValue("TaskBar DragAndDrop", appPath);
+                        key.Close();
+
+                        Conf.Default.Runatstart = true;
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                    }
+
+                }
+                else if (!checkbox_Runatstart.Checked)
+                {
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                    if (key != null)
+                    {
+                        key.DeleteValue("TaskBar DragAndDrop", false);
+                        key.Close();
+                        Conf.Default.Runatstart = false;
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                    }
+
 
 
                 }
-                Conf.Default.Runatstart = true;
-                Conf.Default.Save();
-                Conf.Default.Reload();
             }
-            else if (!checkbox_Runatstart.Checked)
+            catch (COMException ex)
             {
+                // Handle the specific COMException here
 
-                RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                key.DeleteValue("TaskBar DragAndDrop(NO UAC)", false);
-                key.Close();
-                Conf.Default.Runatstart = false;
-                Conf.Default.Save();
-                Conf.Default.Reload();
-
+                // Log or display error information, or take appropriate action
             }
-
+            catch (Exception ex)
+            {
+                MessageBox.Show("Registry Write Error: " + ex.Message, "Failed!!", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
 
         }
-
+        
+        
+        // Auto Click checkbox listener
         private void checkbox_ClickPinApp_CheckedChanged(object sender, EventArgs e)
         {
             if (checkbox_ClickPinApp.Checked)
@@ -407,6 +480,8 @@ namespace TaskBarDragAndDropNoUAC
             }
         }
 
+
+        //save changed intervals 
         private void btn_savesetting_Click(object sender, EventArgs e)
         {
             Conf.Default.clickInterval = int.Parse(txt_clickInterval.Text.ToString());
@@ -418,6 +493,8 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
+
+        ///reset intervals to default
         private void btn_resetsetting_Click(object sender, EventArgs e)
         {
             Conf.Default.clickInterval = 500;
@@ -442,6 +519,9 @@ namespace TaskBarDragAndDropNoUAC
             btn_savesetting.Visible = true;
         }
 
+
+
+        //
         private void MainForm_Resize(object sender, EventArgs e)
         {
             if (this.WindowState == FormWindowState.Minimized)
@@ -479,9 +559,13 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
+
+        //invoke main form from notificationTray
         private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            var msbtn  = MouseButtons.Left;
+            if (SystemInformation.MouseButtonsSwapped) { msbtn = MouseButtons.Right; }
+            if (e.Button == msbtn)
             {
                 if (!mainFormOpen)
                 {
@@ -493,7 +577,7 @@ namespace TaskBarDragAndDropNoUAC
                 else
                 {
                     aboutForm.Close();
-                     //fix 1.0.2-beta
+                    //fix 1.0.2-beta
                     this.WindowState = FormWindowState.Minimized;
                     this.Hide();
                     mainFormOpen = false;
@@ -552,6 +636,13 @@ namespace TaskBarDragAndDropNoUAC
         {
             toolTip1.Show("Find me on GitHub", pictureBox3);
         }
+
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+
+        }
+
+
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
