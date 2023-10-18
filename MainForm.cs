@@ -13,6 +13,8 @@ using System.Xml;
 using TaskBarDragAndDrop;
 using System.Threading.Tasks;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Globalization;
+
 
 namespace TaskBarDragAndDropNoUAC
 {
@@ -60,7 +62,7 @@ namespace TaskBarDragAndDropNoUAC
         
         public bool aboutBoxOpen, mainFormOpen, myEnd = false;
         AboutBox1 aboutForm = new AboutBox1();
-       
+        CultureInfo cultureInfo = CultureInfo.CurrentUICulture;
 
         public System.Windows.Point oldpoint = new System.Windows.Point(0,0);
 
@@ -234,6 +236,8 @@ namespace TaskBarDragAndDropNoUAC
 
             try
             {
+
+                
                 MouseIsDragging.Interval = Conf.Default.mousehookint;
                 SelectedTimer.Interval = Conf.Default.mousehookint;
                 checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
@@ -244,7 +248,12 @@ namespace TaskBarDragAndDropNoUAC
                 btn_resetsetting.Visible = false;
                 btn_savesetting.Visible = false;
                 ShowInTaskbar = false;
-                //this.Show();
+                //
+                if (Conf.Default.DisLan == null || Conf.Default.DisLan != cultureInfo.DisplayName)
+                {
+                    notifyIcon1_MouseClick(sender, new MouseEventArgs(MouseButtons.Left, 2, 0, 0, 0));
+                    btn_localize_Click(sender, e);
+                }
             }
             catch (COMException ex) {
                // MessageBox.Show("man load COM");
@@ -315,7 +324,7 @@ namespace TaskBarDragAndDropNoUAC
                                 }
 
                             }
-                            else if (SelectedIconfn.Current.Name.Contains("running window"))
+                            else if (SelectedIconfn.Current.Name.Contains(Conf.Default.RunningWin))
                             {
 
                                 Thread.Sleep(Conf.Default.clickInterval);
@@ -724,6 +733,61 @@ namespace TaskBarDragAndDropNoUAC
         private void SelectedTimer_Tick(object sender, EventArgs e)
         {
 
+        }
+
+        private void btn_localize_Click(object sender, EventArgs e)
+        {
+
+            var initresult = MessageBox.Show("For the initial setup, it is required to locate certain inputs.", "initial Setup", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (initresult == DialogResult.OK)
+            {
+
+                
+
+                // Get the display language
+                string displayLanguage = cultureInfo.DisplayName;
+
+                AutomationElementCollection matches = null;
+
+                AutomationElement _; // Placeholder for element2
+                Rect __; // Placeholder for element3
+
+                FindTaskBarIcons(MyScreen(), out _, out matches, out __);
+
+                string partialName = "TaskBar DragAndDrop(NO UAC)";
+
+
+                // Get the root automation element for the application's main window
+
+                if (matches.Count > 0)
+                {
+
+                    foreach (AutomationElement match in matches)
+                    {
+                        if (match.Current.Name.Contains(partialName))
+                        {
+                            string runwin = match.Current.Name;
+                            runwin = runwin.Remove(0, partialName.Length + 4);
+                            Conf.Default.RunningWin = runwin;
+                            Conf.Default.DisLan = displayLanguage;
+                            Conf.Default.Save();
+                            Conf.Default.Reload();
+                            MessageBox.Show("Done...", "initial Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                            break;
+                        }
+                    }
+                }
+
+            }
+
+            else
+            {
+                MessageBox.Show("If the app isn't working, you can perform this initial setup at a later time.", "Canceling..!!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+
+
+            
         }
 
         private void timer2_Tick(object sender, EventArgs e)
