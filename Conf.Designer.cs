@@ -82,5 +82,29 @@ namespace TaskBarDragAndDrop {
                 this["closetotray"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("running window")]
+        public string RunningWin {
+            get {
+                return ((string)(this["RunningWin"]));
+            }
+            set {
+                this["RunningWin"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string DisLan {
+            get {
+                return ((string)(this["DisLan"]));
+            }
+            set {
+                this["DisLan"] = value;
+            }
+        }
     }
 }

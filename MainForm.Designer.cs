@@ -54,6 +54,7 @@
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.SelectedTimer = new System.Windows.Forms.Timer(this.components);
+            this.btn_localize = new System.Windows.Forms.Button();
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -188,7 +189,7 @@
             // 
             // btn_savesetting
             // 
-            this.btn_savesetting.Location = new System.Drawing.Point(208, 82);
+            this.btn_savesetting.Location = new System.Drawing.Point(208, 58);
             this.btn_savesetting.Name = "btn_savesetting";
             this.btn_savesetting.Size = new System.Drawing.Size(75, 39);
             this.btn_savesetting.TabIndex = 6;
@@ -199,7 +200,7 @@
             // 
             // btn_resetsetting
             // 
-            this.btn_resetsetting.Location = new System.Drawing.Point(289, 82);
+            this.btn_resetsetting.Location = new System.Drawing.Point(208, 103);
             this.btn_resetsetting.Name = "btn_resetsetting";
             this.btn_resetsetting.Size = new System.Drawing.Size(75, 39);
             this.btn_resetsetting.TabIndex = 7;
@@ -280,11 +281,22 @@
             this.SelectedTimer.Interval = 5;
             this.SelectedTimer.Tick += new System.EventHandler(this.SelectedTimer_Tick);
             // 
+            // btn_localize
+            // 
+            this.btn_localize.Location = new System.Drawing.Point(289, 67);
+            this.btn_localize.Name = "btn_localize";
+            this.btn_localize.Size = new System.Drawing.Size(75, 43);
+            this.btn_localize.TabIndex = 15;
+            this.btn_localize.Text = "First Time Setup";
+            this.btn_localize.UseVisualStyleBackColor = true;
+            this.btn_localize.Click += new System.EventHandler(this.btn_localize_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.btn_localize);
             this.Controls.Add(this.pictureBox3);
             this.Controls.Add(this.checkbox_closeTray);
             this.Controls.Add(this.button2);
@@ -343,6 +355,7 @@
         private System.Windows.Forms.CheckBox checkbox_closeTray;
         private System.Windows.Forms.PictureBox pictureBox3;
         private System.Windows.Forms.Timer SelectedTimer;
+        private System.Windows.Forms.Button btn_localize;
     }
 }
 

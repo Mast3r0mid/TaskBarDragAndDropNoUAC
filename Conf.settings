@@ -17,5 +17,11 @@
     <Setting Name="closetotray" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="RunningWin" Type="System.String" Scope="User">
+      <Value Profile="(Default)">running window</Value>
+    </Setting>
+    <Setting Name="DisLan" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>
