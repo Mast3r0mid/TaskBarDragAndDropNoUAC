@@ -38,7 +38,6 @@
             this.ntf_about = new System.Windows.Forms.ToolStripMenuItem();
             this.ntf_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.MouseIsDragging = new System.Windows.Forms.Timer(this.components);
-            this.MouseInTaskBarClick = new System.Windows.Forms.Timer(this.components);
             this.checkbox_Runatstart = new System.Windows.Forms.CheckBox();
             this.checkbox_ClickPinApp = new System.Windows.Forms.CheckBox();
             this.txt_mousehook = new System.Windows.Forms.TextBox();
@@ -54,6 +53,7 @@
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.SelectedTimer = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -140,9 +140,9 @@
             this.checkbox_ClickPinApp.AutoSize = true;
             this.checkbox_ClickPinApp.Location = new System.Drawing.Point(12, 35);
             this.checkbox_ClickPinApp.Name = "checkbox_ClickPinApp";
-            this.checkbox_ClickPinApp.Size = new System.Drawing.Size(121, 17);
+            this.checkbox_ClickPinApp.Size = new System.Drawing.Size(152, 17);
             this.checkbox_ClickPinApp.TabIndex = 1;
-            this.checkbox_ClickPinApp.Text = "Automate Icon Click";
+            this.checkbox_ClickPinApp.Text = "Automate Run Pinned App";
             this.checkbox_ClickPinApp.UseVisualStyleBackColor = true;
             this.checkbox_ClickPinApp.CheckedChanged += new System.EventHandler(this.checkbox_ClickPinApp_CheckedChanged);
             // 
@@ -275,6 +275,11 @@
             this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
             this.pictureBox1.MouseHover += new System.EventHandler(this.pictureBox1_MouseHover);
             // 
+            // SelectedTimer
+            // 
+            this.SelectedTimer.Interval = 5;
+            this.SelectedTimer.Tick += new System.EventHandler(this.SelectedTimer_Tick);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -316,7 +321,6 @@
         #endregion
         private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.Timer MouseIsDragging;
-        private System.Windows.Forms.Timer MouseInTaskBarClick;
         private System.Windows.Forms.CheckBox checkbox_Runatstart;
         private System.Windows.Forms.CheckBox checkbox_ClickPinApp;
         private System.Windows.Forms.TextBox txt_mousehook;
@@ -338,6 +342,7 @@
         private System.Windows.Forms.ToolStripMenuItem ntf_exit;
         private System.Windows.Forms.CheckBox checkbox_closeTray;
         private System.Windows.Forms.PictureBox pictureBox3;
+        private System.Windows.Forms.Timer SelectedTimer;
     }
 }
 
