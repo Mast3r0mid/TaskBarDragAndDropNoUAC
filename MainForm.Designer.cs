@@ -55,6 +55,8 @@
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.SelectedTimer = new System.Windows.Forms.Timer(this.components);
             this.btn_localize = new System.Windows.Forms.Button();
+            this.chekbox_log = new System.Windows.Forms.CheckBox();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -121,7 +123,6 @@
             // 
             // MouseIsDragging
             // 
-            this.MouseIsDragging.Enabled = true;
             this.MouseIsDragging.Interval = 5;
             this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
             // 
@@ -155,6 +156,7 @@
             this.txt_mousehook.Size = new System.Drawing.Size(49, 20);
             this.txt_mousehook.TabIndex = 2;
             this.txt_mousehook.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txt_mousehook.Visible = false;
             this.txt_mousehook.WordWrap = false;
             this.txt_mousehook.TextChanged += new System.EventHandler(this.txt_mousehook_TextChanged);
             // 
@@ -166,6 +168,7 @@
             this.label1.Size = new System.Drawing.Size(122, 13);
             this.label1.TabIndex = 3;
             this.label1.Text = "Mouse Hook Interval ms";
+            this.label1.Visible = false;
             // 
             // txt_clickInterval
             // 
@@ -278,7 +281,7 @@
             // 
             // SelectedTimer
             // 
-            this.SelectedTimer.Interval = 5;
+            this.SelectedTimer.Interval = 500;
             this.SelectedTimer.Tick += new System.EventHandler(this.SelectedTimer_Tick);
             // 
             // btn_localize
@@ -291,11 +294,23 @@
             this.btn_localize.UseVisualStyleBackColor = true;
             this.btn_localize.Click += new System.EventHandler(this.btn_localize_Click);
             // 
+            // chekbox_log
+            // 
+            this.chekbox_log.AutoSize = true;
+            this.chekbox_log.Location = new System.Drawing.Point(12, 81);
+            this.chekbox_log.Name = "chekbox_log";
+            this.chekbox_log.Size = new System.Drawing.Size(132, 17);
+            this.chekbox_log.TabIndex = 16;
+            this.chekbox_log.Text = "Show Logs(Next Start)";
+            this.chekbox_log.UseVisualStyleBackColor = true;
+            this.chekbox_log.CheckedChanged += new System.EventHandler(this.chekbox_log_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.chekbox_log);
             this.Controls.Add(this.btn_localize);
             this.Controls.Add(this.pictureBox3);
             this.Controls.Add(this.checkbox_closeTray);
@@ -356,6 +371,8 @@
         private System.Windows.Forms.PictureBox pictureBox3;
         private System.Windows.Forms.Timer SelectedTimer;
         private System.Windows.Forms.Button btn_localize;
+        private System.Windows.Forms.CheckBox chekbox_log;
+        private System.Windows.Forms.Timer timer1;
     }
 }
 
