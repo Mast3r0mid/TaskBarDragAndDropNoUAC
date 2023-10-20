@@ -21,7 +21,10 @@
       <Value Profile="(Default)">running window</Value>
     </Setting>
     <Setting Name="DisLan" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
+      <Value Profile="(Default)">en-GB</Value>
+    </Setting>
+    <Setting Name="showlog" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

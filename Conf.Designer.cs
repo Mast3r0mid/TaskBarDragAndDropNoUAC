@@ -97,13 +97,25 @@ namespace TaskBarDragAndDrop {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("en-GB")]
         public string DisLan {
             get {
                 return ((string)(this["DisLan"]));
             }
             set {
                 this["DisLan"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool showlog {
+            get {
+                return ((bool)(this["showlog"]));
+            }
+            set {
+                this["showlog"] = value;
             }
         }
     }
