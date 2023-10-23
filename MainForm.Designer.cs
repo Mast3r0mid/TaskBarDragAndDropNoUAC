@@ -124,7 +124,7 @@
             // MouseIsDragging
             // 
             this.MouseIsDragging.Interval = 5;
-            this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
+            
             // 
             // checkbox_Runatstart
             // 
