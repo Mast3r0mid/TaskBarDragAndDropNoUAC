@@ -38,7 +38,6 @@
             this.ntf_about = new System.Windows.Forms.ToolStripMenuItem();
             this.ntf_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.MouseIsDragging = new System.Windows.Forms.Timer(this.components);
-            this.MouseInTaskBarClick = new System.Windows.Forms.Timer(this.components);
             this.checkbox_Runatstart = new System.Windows.Forms.CheckBox();
             this.checkbox_ClickPinApp = new System.Windows.Forms.CheckBox();
             this.txt_mousehook = new System.Windows.Forms.TextBox();
@@ -54,6 +53,10 @@
             this.pictureBox3 = new System.Windows.Forms.PictureBox();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.SelectedTimer = new System.Windows.Forms.Timer(this.components);
+            this.btn_localize = new System.Windows.Forms.Button();
+            this.chekbox_log = new System.Windows.Forms.CheckBox();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -120,13 +123,8 @@
             // 
             // MouseIsDragging
             // 
-            this.MouseIsDragging.Enabled = true;
             this.MouseIsDragging.Interval = 5;
-            this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
-            // 
-            // MouseInTaskBarClick
-            // 
-            this.MouseInTaskBarClick.Tick += new System.EventHandler(this.MouseInTaskBarClick_Tick);
+            
             // 
             // checkbox_Runatstart
             // 
@@ -144,9 +142,9 @@
             this.checkbox_ClickPinApp.AutoSize = true;
             this.checkbox_ClickPinApp.Location = new System.Drawing.Point(12, 35);
             this.checkbox_ClickPinApp.Name = "checkbox_ClickPinApp";
-            this.checkbox_ClickPinApp.Size = new System.Drawing.Size(121, 17);
+            this.checkbox_ClickPinApp.Size = new System.Drawing.Size(152, 17);
             this.checkbox_ClickPinApp.TabIndex = 1;
-            this.checkbox_ClickPinApp.Text = "Automate Icon Click";
+            this.checkbox_ClickPinApp.Text = "Automate Run Pinned App";
             this.checkbox_ClickPinApp.UseVisualStyleBackColor = true;
             this.checkbox_ClickPinApp.CheckedChanged += new System.EventHandler(this.checkbox_ClickPinApp_CheckedChanged);
             // 
@@ -158,6 +156,7 @@
             this.txt_mousehook.Size = new System.Drawing.Size(49, 20);
             this.txt_mousehook.TabIndex = 2;
             this.txt_mousehook.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txt_mousehook.Visible = false;
             this.txt_mousehook.WordWrap = false;
             this.txt_mousehook.TextChanged += new System.EventHandler(this.txt_mousehook_TextChanged);
             // 
@@ -169,6 +168,7 @@
             this.label1.Size = new System.Drawing.Size(122, 13);
             this.label1.TabIndex = 3;
             this.label1.Text = "Mouse Hook Interval ms";
+            this.label1.Visible = false;
             // 
             // txt_clickInterval
             // 
@@ -192,7 +192,7 @@
             // 
             // btn_savesetting
             // 
-            this.btn_savesetting.Location = new System.Drawing.Point(208, 82);
+            this.btn_savesetting.Location = new System.Drawing.Point(208, 58);
             this.btn_savesetting.Name = "btn_savesetting";
             this.btn_savesetting.Size = new System.Drawing.Size(75, 39);
             this.btn_savesetting.TabIndex = 6;
@@ -203,7 +203,7 @@
             // 
             // btn_resetsetting
             // 
-            this.btn_resetsetting.Location = new System.Drawing.Point(289, 82);
+            this.btn_resetsetting.Location = new System.Drawing.Point(208, 103);
             this.btn_resetsetting.Name = "btn_resetsetting";
             this.btn_resetsetting.Size = new System.Drawing.Size(75, 39);
             this.btn_resetsetting.TabIndex = 7;
@@ -279,11 +279,39 @@
             this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
             this.pictureBox1.MouseHover += new System.EventHandler(this.pictureBox1_MouseHover);
             // 
+            // SelectedTimer
+            // 
+            this.SelectedTimer.Interval = 500;
+            this.SelectedTimer.Tick += new System.EventHandler(this.SelectedTimer_Tick);
+            // 
+            // btn_localize
+            // 
+            this.btn_localize.Location = new System.Drawing.Point(289, 67);
+            this.btn_localize.Name = "btn_localize";
+            this.btn_localize.Size = new System.Drawing.Size(75, 43);
+            this.btn_localize.TabIndex = 15;
+            this.btn_localize.Text = "First Time Setup";
+            this.btn_localize.UseVisualStyleBackColor = true;
+            this.btn_localize.Click += new System.EventHandler(this.btn_localize_Click);
+            // 
+            // chekbox_log
+            // 
+            this.chekbox_log.AutoSize = true;
+            this.chekbox_log.Location = new System.Drawing.Point(12, 81);
+            this.chekbox_log.Name = "chekbox_log";
+            this.chekbox_log.Size = new System.Drawing.Size(132, 17);
+            this.chekbox_log.TabIndex = 16;
+            this.chekbox_log.Text = "Show Logs(Next Start)";
+            this.chekbox_log.UseVisualStyleBackColor = true;
+            this.chekbox_log.CheckedChanged += new System.EventHandler(this.chekbox_log_CheckedChanged);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.chekbox_log);
+            this.Controls.Add(this.btn_localize);
             this.Controls.Add(this.pictureBox3);
             this.Controls.Add(this.checkbox_closeTray);
             this.Controls.Add(this.button2);
@@ -320,7 +348,6 @@
         #endregion
         private System.Windows.Forms.NotifyIcon notifyIcon1;
         private System.Windows.Forms.Timer MouseIsDragging;
-        private System.Windows.Forms.Timer MouseInTaskBarClick;
         private System.Windows.Forms.CheckBox checkbox_Runatstart;
         private System.Windows.Forms.CheckBox checkbox_ClickPinApp;
         private System.Windows.Forms.TextBox txt_mousehook;
@@ -342,6 +369,10 @@
         private System.Windows.Forms.ToolStripMenuItem ntf_exit;
         private System.Windows.Forms.CheckBox checkbox_closeTray;
         private System.Windows.Forms.PictureBox pictureBox3;
+        private System.Windows.Forms.Timer SelectedTimer;
+        private System.Windows.Forms.Button btn_localize;
+        private System.Windows.Forms.CheckBox chekbox_log;
+        private System.Windows.Forms.Timer timer1;
     }
 }
 

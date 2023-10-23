@@ -1,13 +1,21 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Forms;
 using TaskBarDragAndDrop;
+using Serilog;
+using Serilog.Sinks;
+using System.Text.RegularExpressions;
+using Serilog.Core;
+using System.Linq;
 
 namespace TaskBarDragAndDropNoUAC
 {
@@ -23,36 +31,117 @@ namespace TaskBarDragAndDropNoUAC
         // DLL imports and Global Vars
         //
         ////////////////////////////////
+        ///
 
+        [DllImport("kernel32.dll")]
+        private static extern bool AllocConsole();
+
+        [DllImport("kernel32.dll")]
+        private static extern bool FreeConsole();
+
+        // Windows API function to set a hook
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        // Windows API function to unhook a hook
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+        // Windows API function to call the next hook in the chain
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+        // Windows API function to get a module handle
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr GetModuleHandle(string lpModuleName);
+
+
+
+        // Get Localized .MUI File
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr LoadLibrary(string lpFileName);
+
+
+        // Get Localized Strng from .MUI File
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern int LoadString(IntPtr hInstance, uint uID, [Out] System.Text.StringBuilder lpBuffer, int nBufferMax);
+
+
+        // Find Window Handle
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+
+        //Get Window Bounds Area
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECTOUT lpRect);
+        //stract for upper dll
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECTOUT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
 
 
         [DllImport("user32.dll")]
         public static extern short GetAsyncKeyState(int vKey);
-        const int KEYEVENTF_KEYUP = 0x2;
-        const int VK_LWIN = 0x5B; // Left Win key
-        const int VK_T = 0x54; // 'T' key
 
-        [DllImport("user32.dll")]
-        public static extern void keybd_event(byte bVk, byte bScan, int dwFlags, int dwExtraInfo);
+        private int mouseintsignal = 0x01;
+        private static bool isDragging, clicked, focused, waitforFunc = false;
+        private static System.Drawing.Point dragStartPoint = new System.Drawing.Point(0, 0);
 
-        [DllImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool SetForegroundWindow(IntPtr hWnd);
+        private String TrayhWnd = "Shell_TrayWnd"; //default name
+        static readonly Mutex mutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC)");
+        static readonly Mutex aboutMutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC) AboutBoxMutex");
 
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        private const int VK_LBUTTON = 0x01;
-        private static bool isDragging = false;
-        private static System.Drawing.Point dragStartPoint = System.Drawing.Point.Empty;
-        private static bool ImDone, focused = false;
-        private static Rect TrayRectangle;
-        private static AutomationElement ChosentaskIcon;
-        static Mutex mutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC)");
-        static Mutex aboutMutex = new Mutex(true, "TaskBar DragAndDrop(NO UAC) AboutBoxMutex");
         public bool aboutBoxOpen, mainFormOpen, myEnd = false;
         AboutBox1 aboutForm = new AboutBox1();
+        CultureInfo cultureInfo = CultureInfo.CurrentUICulture;
+        StreamWriter fileWriter;
+        public static AutomationElement DesktopRootElement, selectedIcon = null;
+        AutomationElementCollection TaskBarIconCollection = null;
+        Rect ItemsRectArea = Rect.Empty;
+
+
+
+        // Define the delegate for the mouse hook procedure
+        private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        private const int WH_MOUSE_LL = 14; // Hook type for low-level mouse hook
+        private const int WM_MOUSEMOVE = 0x0200; // Windows message code for mouse movement
+
+        private static LowLevelMouseProc _mouseProc;
+        private static IntPtr _hookID = IntPtr.Zero;
+
+
+
+
+        // Structure to hold mouse information
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MSLLHOOKSTRUCT
+        {
+            public POINT_HOOK pt;
+            public uint mouseData;
+            public uint flags;
+            public uint time;
+            public IntPtr dwExtraInfo;
+        }
+
+        // Structure to hold mouse coordinates
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT_HOOK
+        {
+            public int x;
+            public int y;
+        }
+
+
+        //About
         private void ShowAboutPage()
         {
 
@@ -75,25 +164,31 @@ namespace TaskBarDragAndDropNoUAC
 
         public MainForm()
         {
-            InitializeComponent();
-            
+            Log.Information("InitializeComponent();");
+           InitializeComponent();
+
         }
 
-        private System.Windows.Point ConvertDraw2system(System.Drawing.Point Draw2sys)
-        {
 
-            ///convert system.windows.Points to system.Draw.Point // Works for me / Need to test more to make sure_
+        ///convert system.windows.Points to system.Draw.Point
+        public System.Windows.Point ConvertDraw2system(System.Drawing.Point Draw2sys)
+        {
+            
+            // Works for me / Need to test more to make sure_
             //if it really works
             System.Windows.Point Drawsystem = new System.Windows.Point(int.Parse(Draw2sys.X.ToString()), int.Parse(Draw2sys.Y.ToString()));
 
             return Drawsystem;
         }
 
-        private bool CheckMousearea(Rect showme)
+
+
+        // get cursor system.Point by Unhex systemDrawingPoint 
+        private bool CheckCurrentMouseareaWithRectArea(Rect showme)
         {
 
 
-            // get cursor Point by Unhex systemDrawingPoint 
+            // get cursor system.Point by Unhex systemDrawingPoint 
 
             string cursorXsystempnt = Cursor.Position.X.ToString();
             string cursorYsystempnt = Cursor.Position.Y.ToString();
@@ -103,7 +198,7 @@ namespace TaskBarDragAndDropNoUAC
 
             //check if mouse is in Icon area
 
-            if (showme.Contains(SystemWindowsCursorPoint) && isDragging)
+            if (showme.Contains(SystemWindowsCursorPoint))
             {
 
                 return true;
@@ -115,281 +210,371 @@ namespace TaskBarDragAndDropNoUAC
             }
 
         }
-
-
-
-
-        private int FindTaskbar(int justtray)
-        {
-
-            //check for Multi-scren and active screen
-            System.Drawing.Point cursorpos = Cursor.Position;
-            Screen screen = Screen.FromPoint(cursorpos);
-            String TrayhWnd = "";
-
-            if (screen.Primary) // use active desktop
-            {
-                TrayhWnd = "Shell_TrayWnd";
-
-            }
-            else
-            {
-                TrayhWnd = "Shell_SecondaryTrayWnd";
-
-            }
-
-            PropertyCondition classNameCondition = new PropertyCondition(AutomationElement.ClassNameProperty, TrayhWnd);
-
-            // Search for the main window of the target application
-            AutomationElement targetAppWindow = AutomationElement.RootElement.FindFirst(System.Windows.Automation.TreeScope.Children, classNameCondition);
-
-            if (targetAppWindow != null)
-            {
-                PropertyCondition taskbarelements = new PropertyCondition(AutomationElement.ClassNameProperty, "Taskbar.TaskListButtonAutomationPeer");
-
-                // Find all Icons in the Taskbar by its class name
-                AutomationElementCollection panel = targetAppWindow.FindAll(System.Windows.Automation.TreeScope.Descendants, taskbarelements);
-
-                //fix 1.0.2 
-
-                if(panel.Count == 0) {
-                    //no panel found
-
-                    return 0;
-                }
-
-
-                if (justtray == 28 && panel.Count > 0)
-                { // if i only need taskbar area // random number // my fav number :)
-
-                    TrayRectangle = new Rect(panel[0].Current.BoundingRectangle.Left, panel[0].Current.BoundingRectangle.Top, panel[panel.Count - 1].Current.BoundingRectangle.Right, panel[0].Current.BoundingRectangle.Bottom);
-
-
-                    return 1;
-                }
-
-
-                // for each Icon in Task Bar we found
-
-                foreach (AutomationElement taskbaricons in panel)
-                {
-
-                    //if mouse is over the Icon in TaskBar  and draging and dragstart and current is not the dame
-
-                    Rect itemrect = taskbaricons.Current.BoundingRectangle;
-
-                    /// check AutomationID if its a real icon not a widget or other items
-                    /// 
-                    //Fix 1.0.1 Detect Separate icons in TaskBar : Contains("Window:")
-                    if ((taskbaricons.Current.AutomationId.Contains("Appid:") || taskbaricons.Current.AutomationId.Contains("Window:")) && CheckMousearea(itemrect) && isDragging && Cursor.Position != dragStartPoint)
-
-                    {
-
-                        //save area in global val, Just in case , maybe for future
-                        ChosentaskIcon = taskbaricons;
-                        //use old trick to create taskSwitch thumbnail live preview
-
-                        while (!focused)
-                        {
-
-                            SetForegroundWindow(FindWindow(TrayhWnd, null));
-                            Thread.Sleep(1);
-
-                            //check if item focused
-                            if (taskbaricons.Current.HasKeyboardFocus)
-                            {
-                                focused = true;
-                            }
-                            else
-                            {
-                                // Simulate releasing the Win+T key
-                                keybd_event(VK_LWIN, 0, 0, 0);
-                                keybd_event(VK_T, 0, 0, 0);
-                                Thread.Sleep(1);
-                                // Simulate releasing the Win+T key
-                                keybd_event(VK_T, 0, KEYEVENTF_KEYUP, 0);
-                                keybd_event(VK_LWIN, 0, KEYEVENTF_KEYUP, 0);
-                                taskbaricons.SetFocus();
-                            }
-
-                        }
-
-
-                        if (Conf.Default.ClickPinApp) // if auto click enabled
-                        {
-                            //due check if you moved your cursor during wait time
-                            System.Drawing.Point LastCursorCheck = Cursor.Position;
-                            Rect tmprect = new Rect(ConvertDraw2system(LastCursorCheck).X, ConvertDraw2system(LastCursorCheck).Y, 10, 10);
-                            Thread.Sleep(Conf.Default.clickInterval);
-                            if (CheckMousearea(tmprect))
-                            {
-
-                                InvokePattern invokePattern = (InvokePattern)taskbaricons.GetCurrentPattern(InvokePattern.Pattern);
-                                invokePattern.Invoke();
-                                //fix 1.0.3 fix  :Avoid lots of clicks
-                                ImDone = true;
-                                return 1;
-
-                            }
-                            else
-                            {
-
-                                ImDone = true;
-                                return 1;
-                            }
-                        }
-
-                        //much better this way
-                        //for ever click any icon in taskbar as long as LBTN is down
-                        //ImDone = true;
-                        return 1;
-
-                    }
-                    else
-                    {
-                        //mouse it out of Tray Area
-                    }
-
-                }
-
-
-            }
-            else
-            {
-
-                return 0;
-
-            }
-
-            return 1;
-        }
+        
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+
+            
+
+            if (Conf.Default.showlog)
+            {
+                AllocConsole();
+
+                //create console window
+                Log.Logger = new LoggerConfiguration().WriteTo.Console().WriteTo.File($"{Application.StartupPath}\\TaskBarDrag&drop.log", rollingInterval: RollingInterval.Day, encoding: Encoding.UTF8).CreateLogger();
+
+                Log.Information($" Log Path : {Application.StartupPath}\\TaskBarDrag&drop.log");
+              
+            }
+           
             // Specify properties to identify the target application's main window by class name
             if (mutex.WaitOne(TimeSpan.Zero, true))
             {
                 mutex.ReleaseMutex();
 
+
             }
             else
             {
+                Log.Error("Another App Found- Exit...");
                 MessageBox.Show("Another instance of the application is already running.", "Application Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 myEnd = true;
                 this.Close();
 
             }
 
-            checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
-            checkbox_closeTray.Checked = Conf.Default.closetotray;
-            checkbox_Runatstart.Checked = Conf.Default.Runatstart;
-            txt_mousehook.Text = Conf.Default.mousehookint.ToString();
-            txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
-            btn_resetsetting.Visible = false;
-            btn_savesetting.Visible = false;
-            ShowInTaskbar = false;
-            this.Show();
-            
+            try
+            {
+
+                chekbox_log.Checked = Conf.Default.showlog;
+                MouseIsDragging.Interval = Conf.Default.mousehookint;
+                SelectedTimer.Interval = 500; //////////// check for later  SelectedTimer.Interval = 500; Conf.Default.mousehookint;
+                checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
+                checkbox_closeTray.Checked = Conf.Default.closetotray;
+                checkbox_Runatstart.Checked = Conf.Default.Runatstart;
+                txt_mousehook.Text = Conf.Default.mousehookint.ToString();
+                txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
+                btn_resetsetting.Visible = false;
+
+                btn_savesetting.Visible = false;
+                ShowInTaskbar = false;
+
+                //
+                if (Conf.Default.DisLan == null || Conf.Default.DisLan != cultureInfo.DisplayName)
+                {
+                    notifyIcon1_MouseClick(sender, new MouseEventArgs(MouseButtons.Left, 2, 0, 0, 0));
+                    btn_localize_Click(sender, e);
+                }
+                // Define the callback function for the mouse hook
+                _mouseProc = HookCallback;
+
+                // Set up the low-level mouse hook
+                _hookID = SetHook(_mouseProc);
+
+               
+                Log.Information($"Log Window {Environment.NewLine} {aboutForm.AssemblyProduct} {Assembly.GetExecutingAssembly().GetName().Version.ToString()}: {Environment.NewLine} Current Language Pack: {cultureInfo} {DateTime.Now} {Environment.NewLine} Initial Setup Strings: '{Conf.Default.RunningWin}' And '{Conf.Default.multiWin}'");
+
+            }
+            catch (COMException ex)
+            {
+               Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
 
 
         }
 
-        private void MouseIsDragging_Tick(object sender, EventArgs e)
-        { //chech if LeftBtn is  pressed (  drag or Start dragging)
 
-            int hr = 0;
-            if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0)
+
+        //check for Multi-scren and active screen
+        private string MyScreen()
+        {
+            string hWsc;
+            Screen screen = Screen.FromPoint(Cursor.Position);
+            if (screen.Primary) // use active desktop
             {
-
-                hr = FindTaskbar(28); // find taskbar and save rectangle area in global val TrayRectangle 
-                if (!isDragging && !CheckMousearea(TrayRectangle) && hr == 1) // if no drag happend before and mouse is not on taskbar
-                {
-
-                    isDragging = true;
-                    //check drag start position
-                    dragStartPoint = Cursor.Position;//save drag start point into global val
-
-
-                }
-
-
-
-                //temp rect from mouse drag start pos
-                Rect tmprect = new Rect(ConvertDraw2system(dragStartPoint).X + 2, ConvertDraw2system(dragStartPoint).Y + 2, 1, 1);
-                if (isDragging && CheckMousearea(TrayRectangle) && !TrayRectangle.Contains(tmprect) && !ImDone)
-                {
-                    focused = false;
-                    ImDone = false;
-                    FindTaskbar(1); //random number except 28
-
-                }
-                //fix 1.0.3 : continue drag on taskbar after first click
-                if (ChosentaskIcon != null) { 
-                     if (isDragging && !CheckMousearea(ChosentaskIcon.Current.BoundingRectangle))
-                     {
-                             focused = false;
-                         ImDone = false;
-                        FindTaskbar(1); //random number except 28
-
-                     }
-                }
-
+                hWsc = "Shell_TrayWnd";
 
             }
             else
             {
-                //chech if LeftBtn is not pressed ( no drag or finish dragging)
-                if ((GetAsyncKeyState(VK_LBUTTON) & 0x8000) == 0)
+                hWsc = "Shell_SecondaryTrayWnd";
+
+            }
+            Log.Information($"Display: {hWsc}");
+
+            return hWsc;
+        }
+
+
+        //beta 1.0.7 awesome new function
+        // best resouce manager and speed and small function
+        public bool SearchIconAndFocusNEW(String trayClassName, System.Drawing.Point cursorPnt)
+        {
+            SelectedTimer.Stop();
+            cursorPnt = Cursor.Position;
+           Log.Information($"Search For Icon And Focus NEW FN ");
+
+            try
+            {
+                if (selectedIcon != null)
                 {
-                    isDragging = false;
-                    ImDone = false;
-                    focused = false;
+                    if (CheckCurrentMouseareaWithRectArea(selectedIcon.Current.BoundingRectangle))
+                    {
+
+                        Log.Warning($"Mouse is On Last Selected Icon  - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} Area : {selectedIcon.Current.BoundingRectangle} - Exit Search Function");
+                        waitforFunc = false;
+                        // SelectedTimer.Start();
+                        return true;
+                    }
 
                 }
+                Rect searchArea = new Rect(cursorPnt.X, cursorPnt.Y, 1, 1);
+                AutomationElement taskbar = AutomationElement.RootElement.FindFirst(
+                    TreeScope.Children, new PropertyCondition(AutomationElement.ClassNameProperty, trayClassName));
+
+                if (taskbar == null)
+                {
+                    StackTrace stackTrace = new StackTrace(true);
+                    StackFrame frame = stackTrace.GetFrame(0);
+                    int lineNumber = frame.GetFileLineNumber();
+                    string callerMethod = frame.GetMethod().Name;
+                    Log.Warning($"TRAY  IS Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,   Method: {callerMethod}, Line: {lineNumber} , Display: {trayClassName} ,Search Area : {searchArea.ToString()} - Exit Search Function");
+                    waitforFunc = false;
+                    //SelectedTimer.Start();
+                    return false;
+                }
+
+
+                Condition condition = new PropertyCondition(AutomationElement.ClassNameProperty, "Taskbar.TaskListButtonAutomationPeer");
+
+                AutomationElement taskbarElement = taskbar.FindFirst(TreeScope.Descendants, condition);
+                if (taskbarElement == null)
+                {
+
+                    Log.Warning($"TaskBar ICONS Is Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,  Display: {trayClassName} - Exit Search Function");
+                    waitforFunc = false;
+                    //SelectedTimer.Start();
+                    return false;
+                }
+                TreeWalker walker = TreeWalker.ControlViewWalker;
+            
+
+                while (taskbarElement != null && !taskbarElement.Current.BoundingRectangle.Contains(new System.Windows.Point(cursorPnt.X, cursorPnt.Y)))
+                {
+
+                    taskbarElement = walker.GetNextSibling(taskbarElement);
+
+                }
+
+                if (taskbarElement == null)
+                {
+
+                    Log.Warning($"taskbarElement IS Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,    Display: {trayClassName} - Exit Search Function");
+                    // SelectedTimer.Start();
+                    waitforFunc = false;
+                    return false;
+                }
+
+                
+               
+
+                if (Conf.Default.ClickPinApp)
+                {
+                    Thread.Sleep(Conf.Default.clickInterval);
+                    InvokePattern invokePattern = taskbarElement.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                    invokePattern.Invoke();
+
+                    Log.Information("auto Click, done");
+                    waitforFunc = false;
+
+                }
+                
+                else if (!Conf.Default.ClickPinApp  && (taskbarElement.Current.Name.Replace(" ","").Contains(Conf.Default.RunningWin) || taskbarElement.Current.Name.Replace(" ", "").Contains(Conf.Default.multiWin)))
+                {
+
+                   
+                    Thread.Sleep(Conf.Default.clickInterval);
+                    InvokePattern invokePattern = taskbarElement.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                    invokePattern.Invoke();
+                    Log.Information("Running Window Click, done");
+                    waitforFunc = false;
+                }
+                else
+                {
+                    
+                    Log.Information("just Focus- no running Window"); // focus: show default win tooltip
+                    waitforFunc = false;
+                    taskbarElement.SetFocus();
+
+                }
+
+                selectedIcon = taskbarElement;
+
             }
+
+            catch (COMException ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+                waitforFunc = false;
+            }
+            catch (Exception ex)
+            {
+               Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+                waitforFunc = false;
+            }
+
+
+
+            return true;
         }
 
-        private void MouseInTaskBarClick_Tick(object sender, EventArgs e)
+
+
+        /// Main Function : select Element and invoke or Focus Based on mouse position
+        /// 
+        /// OLD FUNCTION/ big bugy  high resource usage function
+        public void SearchIconAndFocus(AutomationElementCollection TaskbarItemCollectinHolder, System.Drawing.Point MousePos, out AutomationElement SelectedIconfn)
         {
+            SelectedIconfn = null; // Initialize to null
+            int counter = 0;
+            Rect MousePosRec = new Rect(MousePos.X, MousePos.Y, 1, 1);
+            bool tmpbool = false;
 
+
+            try
+            {
+
+                foreach (AutomationElement item in TaskbarItemCollectinHolder)
+                {
+                    tmpbool = false;
+                    if (item.Current.AutomationId.Contains("Appid:") || item.Current.AutomationId.Contains("Window:"))
+                    {
+                        tmpbool = true;
+                        counter++;
+                    }
+
+                    if (tmpbool && item.Current.BoundingRectangle.Contains(MousePosRec) && isDragging && Cursor.Position != dragStartPoint)
+
+                    {
+
+                        SelectedIconfn = item;
+                        InvokePattern selection = item.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
+                        if (selection != null)
+                        {
+                            if (Conf.Default.ClickPinApp) //&& !SelectedIconfn.Current.Name.Contains("running window"))
+                            {
+                                Thread.Sleep(Conf.Default.clickInterval);
+                                if (CheckCurrentMouseareaWithRectArea(SelectedIconfn.Current.BoundingRectangle))
+                                {
+                                    selection.Invoke();
+                                    break;
+                                }
+
+                            }
+
+                           // if (SelectedIconfn.Current.Name.Contains(Conf.Default.RunningWin)) //(Regex.IsMatch(SelectedIconfn.Current.Name,Conf.Default.RunningWin) || Regex.IsMatch(SelectedIconfn.Current.Name, Conf.Default.multiWin))
+                           if (Regex.IsMatch(SelectedIconfn.Current.Name, Conf.Default.RunningWin) || Regex.IsMatch(SelectedIconfn.Current.Name, Conf.Default.multiWin))
+                            {
+                                Log.Information("Select Func: Regex search and select running app");
+                                Thread.Sleep(Conf.Default.clickInterval);
+
+                                if (CheckCurrentMouseareaWithRectArea(SelectedIconfn.Current.BoundingRectangle))
+                                {
+                                    selection.Invoke();
+                                    break;
+                                }
+
+                               
+                            }
+                            else
+                            {
+                                Log.Information("Select Func: Regex search and focus Item");
+                                SelectedIconfn.SetFocus();
+                                break;
+
+                            }
+
+
+
+                        }
+                       
+
+                    }
+                }
+            }
+
+            catch (COMException ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
 
 
         }
 
+
+
+        // add/remove to/from start-up
         private void checkbox_Runatstart_CheckedChanged(object sender, EventArgs e)
         {
-            if (checkbox_Runatstart.Checked)
+
+            try
             {
-
-                RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-
-                if (key != null)
+                if (checkbox_Runatstart.Checked)
                 {
-                    string appPath = Assembly.GetEntryAssembly().Location;
-                    key.SetValue("TaskBar DragAndDrop(NO UAC)", appPath);
-                    key.Close();
 
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+
+                    if (key != null)
+                    {
+                        string appPath = Assembly.GetEntryAssembly().Location;
+                        key.SetValue("TaskBar DragAndDrop", appPath);
+                        key.Close();
+
+                        Conf.Default.Runatstart = true;
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                    }
 
                 }
-                Conf.Default.Runatstart = true;
-                Conf.Default.Save();
-                Conf.Default.Reload();
+                else if (!checkbox_Runatstart.Checked)
+                {
+                    RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                    if (key != null)
+                    {
+                        key.DeleteValue("TaskBar DragAndDrop", false);
+                        key.Close();
+                        Conf.Default.Runatstart = false;
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                    }
+
+                }
             }
-            else if (!checkbox_Runatstart.Checked)
+            catch (COMException ex)
             {
-
-                RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                key.DeleteValue("TaskBar DragAndDrop(NO UAC)", false);
-                key.Close();
-                Conf.Default.Runatstart = false;
-                Conf.Default.Save();
-                Conf.Default.Reload();
-
+                // Handle the specific COMException here
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+                // Log or display error information, or take appropriate action
             }
-
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
 
         }
 
+
+        // Auto Click checkbox listener
         private void checkbox_ClickPinApp_CheckedChanged(object sender, EventArgs e)
         {
             if (checkbox_ClickPinApp.Checked)
@@ -407,10 +592,14 @@ namespace TaskBarDragAndDropNoUAC
             }
         }
 
+
+        //save changed intervals 
         private void btn_savesetting_Click(object sender, EventArgs e)
         {
             Conf.Default.clickInterval = int.Parse(txt_clickInterval.Text.ToString());
             Conf.Default.mousehookint = int.Parse(txt_mousehook.Text.ToString());
+            SelectedTimer.Interval = Conf.Default.mousehookint;
+            MouseIsDragging.Interval = Conf.Default.mousehookint;
             Conf.Default.Save();
             Conf.Default.Reload();
             btn_resetsetting.Visible = false;
@@ -418,10 +607,14 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
+
+        ///reset intervals to default
         private void btn_resetsetting_Click(object sender, EventArgs e)
         {
             Conf.Default.clickInterval = 500;
             Conf.Default.mousehookint = 5;
+            SelectedTimer.Interval = 500;
+            MouseIsDragging.Interval = 5;
             txt_mousehook.Text = "5";
             txt_clickInterval.Text = "500";
             Conf.Default.Save();
@@ -479,30 +672,48 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
+
+        //invoke main form from notificationTray
         private void notifyIcon1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+
+            try
             {
-                if (!mainFormOpen)
+                var msbtn = MouseButtons.Left;
+                if (SystemInformation.MouseButtonsSwapped) { msbtn = MouseButtons.Right; }
+                if (e.Button == msbtn)
                 {
-                    this.Show();
-                    WindowState = FormWindowState.Normal;
-                    mainFormOpen = true;
-                    ShowInTaskbar = true;
+                    if (!mainFormOpen)
+                    {
+                        this.Show();
+                        WindowState = FormWindowState.Normal;
+                        mainFormOpen = true;
+                        ShowInTaskbar = true;
+                    }
+                    else
+                    {
+                        aboutForm.Close();
+                        //fix 1.0.2-beta
+                        this.WindowState = FormWindowState.Minimized;
+                        this.Hide();
+                        mainFormOpen = false;
+                        ShowInTaskbar = false;
+
+
+                    }
+
                 }
-                else
-                {
-                    aboutForm.Close();
-                     //fix 1.0.2-beta
-                    this.WindowState = FormWindowState.Minimized;
-                    this.Hide();
-                    mainFormOpen = false;
-                    ShowInTaskbar = false;
-
-
-                }
-
             }
+            catch (COMException ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
+
+
 
 
         }
@@ -553,6 +764,233 @@ namespace TaskBarDragAndDropNoUAC
             toolTip1.Show("Find me on GitHub", pictureBox3);
         }
 
+        private void SelectedTimer_Tick(object sender, EventArgs e)
+        {
+            try
+            {
+                TrayhWnd = MyScreen();
+                RECTOUT TRAY_RECTOUT;
+               
+
+                var TrayHANDLE = FindWindow(TrayhWnd, null);
+                GetWindowRect(TrayHANDLE, out TRAY_RECTOUT);
+                Rect TRAY_rect_AREA = new Rect(TRAY_RECTOUT.Left, TRAY_RECTOUT.Top, Math.Abs(TRAY_RECTOUT.Left - TRAY_RECTOUT.Right), Math.Abs(TRAY_RECTOUT.Top - TRAY_RECTOUT.Bottom));
+
+
+                if (isDragging && TRAY_rect_AREA.Contains(new Rect(ConvertDraw2system(dragStartPoint).X, ConvertDraw2system(dragStartPoint).Y, 1, 1)))
+                {
+
+                    waitforFunc = false;
+                    isDragging = false;
+                    clicked = false;
+                    Log.Warning($"using timer Mouse drag on Tray Area  X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y}");
+                    //selectedIcon = null;
+                    SelectedTimer.Stop();
+                    return;
+
+
+                }
+                else
+                {
+
+                    if (selectedIcon != null)
+                    {
+
+                        if (isDragging && !selectedIcon.Current.BoundingRectangle.Contains(new Rect(ConvertDraw2system(Cursor.Position).X, ConvertDraw2system(Cursor.Position).Y, 5, 5)))
+                        {
+
+                            SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
+                        }
+                        else
+                        {
+
+                            Log.Warning(" Timer Check: mouse on same Old Icon Again- no action just focus");
+                            selectedIcon.SetFocus(); //////////////////// maybe we neeed to check if element has keyboard focus here later : DONE
+                            SelectedTimer.Stop();
+                            //selectedIcon = null;
+                           
+
+                            waitforFunc = false;
+                        }
+
+                    }
+                    else
+                    {
+                        if (isDragging && CheckCurrentMouseareaWithRectArea(TRAY_rect_AREA)) /// && !TRAY_rect_AREA.Contains(new Rect(ConvertDraw2system(dragStartPoint).X,     ConvertDraw2system(dragStartPoint).Y, 5, 5)))// && SelectedIcon == null )//|| !CheckCurrentMouseareaWithRectArea(SelectedIcon.Current.BoundingRectangle)))
+                        {
+
+                            // If we are already dragging and the mouse is within the TRAY_rect_AREA but not within the small 5x5 rect around drag start point
+                            // SearchIconAndFocus(TaskBarIconCollection, Cursor.Position, out SelectedIcon); // Search for an icon in the taskbar and focus on it
+                            SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
+                        }
+                        else
+                        {
+                            Log.Warning(" Timer Check: mouse out of Tray Area- no action");
+
+                            SelectedTimer.Stop();
+
+                            waitforFunc = false;
+                        }
+
+                    }
+
+
+                }
+                // }
+
+
+            }
+            catch (COMException ex)
+            {
+                // Handle the specific COMException here
+
+                // Log or display error information, or take appropriate action
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
+
+        }
+
+        private void btn_localize_Click(object sender, EventArgs e)
+        {
+
+            var initresult = MessageBox.Show("For the initial setup, it is required to locate certain inputs.", "initial Setup", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (initresult == DialogResult.OK)
+            {
+                uint stringID = 11114;
+                uint stringID2 = 11115;
+
+                string muiFilePath = Environment.GetFolderPath(Environment.SpecialFolder.Windows) + "\\" + cultureInfo + "\\explorer.exe.mui";
+            HERE:
+                IntPtr hInstance = IntPtr.Zero;
+                if (File.Exists(muiFilePath))
+                {
+                    hInstance = LoadLibrary(muiFilePath);
+                }
+                // Get the display language
+
+
+                string displayLanguage = cultureInfo.DisplayName;
+                int Hresult = 0;
+                if (hInstance != IntPtr.Zero)
+                {
+                    // Define a buffer to receive the localized string
+                    const int bufferSize = 1024;
+                    StringBuilder buffer = new StringBuilder(bufferSize);
+
+                    // Load the localized string
+                    int stringLength = LoadString(hInstance, stringID, buffer, bufferSize);
+
+                    if (stringLength > 0)
+                    {
+                        string localizedString = buffer.ToString(0, stringLength);
+                        
+                        Conf.Default.DisLan = cultureInfo.DisplayName;
+                        string pattern = @"[–——\-\u2010\u2011\u2012\u2013\u2014]";
+                        localizedString = Regex.Replace(localizedString, pattern, "-");
+                        var tmparray = localizedString.Split('-');
+                        string tmpstring = Regex.Replace(tmparray[1], @"\d", "");
+                        
+
+                        Conf.Default.RunningWin = tmpstring.Replace(" ","");
+                        Log.Information($"First Localized String is : {Conf.Default.RunningWin}");
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                        Hresult++;
+                    }
+
+
+                    stringLength = LoadString(hInstance, stringID2, buffer, bufferSize);
+                    if (stringLength > 0)
+                    {
+                        string localizedString = buffer.ToString(0, stringLength);
+                        string pattern = @"[–——\-\u2010\u2011\u2012\u2013\u2014]";
+                        localizedString = Regex.Replace(localizedString, pattern, "-");
+                        var tmparray = localizedString.Split('-');
+                        string tmpstring = Regex.Replace(tmparray[1], "%d", "");
+                        tmpstring= tmpstring.Replace(" ", "");
+                        
+
+                        Log.Information($"Second Localized String is : {tmpstring}");
+                        Conf.Default.multiWin = tmpstring;
+                        Conf.Default.Save();
+                        Conf.Default.Reload();
+                        Hresult++;
+                    }
+
+
+                    if (Hresult >= 2)
+                    {
+                        MessageBox.Show("Done...", "initial Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        hInstance = IntPtr.Zero;
+                    }
+
+
+
+                }
+
+                if (hInstance == IntPtr.Zero)
+                {
+
+                    var retrycan = MessageBox.Show("Failed to load the Localized .mui file.  " + Environment.NewLine + muiFilePath + Environment.NewLine + "Do you want to load it manually?", "Failed...!!", MessageBoxButtons.YesNo);
+                    if (retrycan == DialogResult.Yes)
+                    {
+
+                    HERE2:
+                        OpenFileDialog openFile = new OpenFileDialog();
+                        openFile.FileName = "explorer.exe.mui";
+                        openFile.Filter = "explorer.exe.mui|*.mui";
+                        var resopen = openFile.ShowDialog();
+                        if (resopen == DialogResult.OK)
+                        {
+
+                            if (openFile.FileName.Contains("explorer.exe.mui"))
+                            {
+                                muiFilePath = openFile.FileName;
+                                goto HERE;
+                            }
+                            else
+                            {
+
+                                MessageBox.Show("Please select the 'explorer.exe.mui' file.", "Invalid File Selection");
+                                goto HERE2;
+                            }
+
+
+                        }
+                        else
+                        {
+
+                            MessageBox.Show("If the app isn't working, you can perform this initial setup at a later time.", "Canceling..!!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        }
+
+
+                    }
+                    else
+                    {
+                        MessageBox.Show("If the app isn't working, you can perform this initial setup at a later time.", "Canceling..!!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    }
+                }
+
+            }
+
+            else
+            {
+
+                MessageBox.Show("If the app isn't working, you can perform this initial setup at a later time.", "Canceling..!!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+
+
+
+        }
+
+
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (Conf.Default.closetotray && !myEnd)
@@ -561,6 +999,15 @@ namespace TaskBarDragAndDropNoUAC
                 this.Hide();
                 mainFormOpen = false;
             }
+            else
+            {
+                // fileWriter.Flush();
+                /// fileWriter.Close();
+                /// 
+                // Unhook the mouse hook when the application exits
+                UnhookWindowsHookEx(_hookID);
+            }
+
         }
 
         private void ntf_settings_Click(object sender, EventArgs e)
@@ -581,5 +1028,130 @@ namespace TaskBarDragAndDropNoUAC
         {
             Process.Start("https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC");
         }
+
+        private void chekbox_log_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chekbox_log.Checked)
+            {
+
+                Conf.Default.showlog = true;
+                Conf.Default.Save();
+                Conf.Default.Reload();
+
+
+            }
+            else
+            {
+
+                Conf.Default.showlog = false;
+                Conf.Default.Save();
+                Conf.Default.Reload();
+
+
+            }
+        }
+
+        // Method to set up the mouse hook
+        private static IntPtr SetHook(LowLevelMouseProc proc)
+        {
+            using (ProcessModule module = Process.GetCurrentProcess().MainModule)
+            {
+                // Set up the low-level mouse hook using SetWindowsHookEx
+                return SetWindowsHookEx(WH_MOUSE_LL, proc, GetModuleHandle(module.ModuleName), 0);
+            }
+        }
+
+        // Callback function for the mouse hook
+
+
+
+
+        private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+        {
+            try
+            {
+                int winMsg = (int)wParam;
+                MSLLHOOKSTRUCT mouseInfo = (MSLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(MSLLHOOKSTRUCT));
+                if (nCode >= 0)
+                {
+
+                    switch (winMsg)
+                    {
+
+                        case 514: // Mouse Up
+                            HandleMouseUp(mouseInfo);
+                            break;
+                        case 513: // Mouse Down
+                            HandleMouseDown(mouseInfo);
+                            break;
+
+                        case 512: // Mouse Move
+                            HandleMouseMove(mouseInfo);
+                            break;
+
+
+                    }
+                }
+            }
+            catch (COMException ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
+
+            return CallNextHookEx(_hookID, nCode, wParam, lParam);
+        }
+
+        private void HandleMouseUp(MSLLHOOKSTRUCT mouseInfo)
+        {
+            clicked = false;
+            isDragging = false;
+            waitforFunc = false;
+            SelectedTimer.Stop();
+            selectedIcon = null;
+            Log.Warning("Mouse Up: X=" + mouseInfo.pt.x + ", Y=" + mouseInfo.pt.y);
+        }
+
+        private void HandleMouseMove(MSLLHOOKSTRUCT mouseInfo)
+        {
+            try
+            {
+                if (clicked && !waitforFunc)
+                {
+                    //ResetTimerAndStartDragging(mouseInfo);
+
+                    SelectedTimer.Stop();
+                    SelectedTimer.Start();
+                    isDragging = true;
+                    Log.Warning("Dragging: X=" + mouseInfo.pt.x + ", Y=" + mouseInfo.pt.y);
+                    waitforFunc = true;
+                   
+                }
+            }
+            catch (COMException ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.ErrorCode}");
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+            }
+        }
+
+        private static void HandleMouseDown(MSLLHOOKSTRUCT mouseInfo)
+        {
+            dragStartPoint.X = mouseInfo.pt.x;
+            dragStartPoint.Y = mouseInfo.pt.y;
+            clicked = true;
+            Log.Warning("Mouse Down: X=" + mouseInfo.pt.x + ", Y=" + mouseInfo.pt.y);
+        }
+
+
+
     }
+
+   
 }
