@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Version 1.1.0 21/10/2023
+## Version 1.1.0 23/10/2023
 # New Feature
 - **Logging**: Integrated Serilog as the main event logger for comprehensive event tracking and management.
 # Changes
