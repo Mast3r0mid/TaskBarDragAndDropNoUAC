@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.1.0 21/10/2023
+# New Feature
+- **Logging**: Integrated Serilog as the main event logger for comprehensive event tracking and management.
+# Changes
+- **Changes**: 
+  -See previous beta release changelogs for details on changes and fixes introduced during the beta testing phase.
+  
+
 ## Version 1.0.7-beta 21/10/2023
 - **Changes**: 
   - again another search pattern.
@@ -10,7 +18,7 @@ All notable changes to this project will be documented in this file.
 - **Fix**
   - Fixed various issues to boost application stability and reliability specially High resource usage and CPU Temp.
   - more localized windows compatibility.
-  -  many bug fixes.
+  - many bug fixes.
 
 ## Version  1.0.6-beta 18/10/2023
 - **Changes**: 
