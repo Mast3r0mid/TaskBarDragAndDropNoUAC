@@ -1,6 +1,6 @@
-# Drag&Drop(win11 No UAC)
+# TaskBar Drag&Drop(No UAC)
 
-TaskBar Drag And Drop(No UAC) allows you to enable Drag & Drop functionality on the Taskbar in Windows 11 even when UAC (User Account Control) is turned off or when you are using the Built-in Administrator Account. This tool removes the need for <code>UndockingDisabled</code> or the restoration of the <code>classic taskbar</code>.
+TaskBar Drag And Drop(No UAC) allows you to enable Drag & Drop functionality on the Taskbar in **Windows 11** even when UAC (User Account Control) is turned off or when you are using the <code>Built-in Administrator</code> Account. This tool removes the need for <code>UndockingDisabled</code> or the restoration of the <code>classic taskbar</code>.
 
 ![Screenshot](screenshot.png)
 
