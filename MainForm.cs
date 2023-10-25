@@ -16,6 +16,8 @@ using Serilog.Sinks;
 using System.Text.RegularExpressions;
 using Serilog.Core;
 using System.Linq;
+using Serilog.Events;
+using Serilog.Sinks.SystemConsole.Themes;
 
 namespace TaskBarDragAndDropNoUAC
 {
@@ -215,16 +217,21 @@ namespace TaskBarDragAndDropNoUAC
         private void MainForm_Load(object sender, EventArgs e)
         {
 
-            
+            if (!Directory.Exists($"{Application.StartupPath}\\logs\\"))
+            {
+                Directory.CreateDirectory($"{Application.StartupPath}\\logs\\");
+            }
 
             if (Conf.Default.showlog)
             {
-                AllocConsole();
 
                 //create console window
-                Log.Logger = new LoggerConfiguration().WriteTo.Console().WriteTo.File($"{Application.StartupPath}\\TaskBarDrag&drop.log", rollingInterval: RollingInterval.Day, encoding: Encoding.UTF8).CreateLogger();
+                AllocConsole();
+ 
+                Log.Logger = new LoggerConfiguration().WriteTo.Console(theme: AnsiConsoleTheme.Sixteen ).WriteTo.Async(a => a.File($"{Application.StartupPath}\\logs\\TaskBarDrag&drop.log", rollingInterval: RollingInterval.Day, encoding: Encoding.UTF8)).CreateLogger();
+                
 
-                Log.Information($" Log Path : {Application.StartupPath}\\TaskBarDrag&drop.log");
+                Log.Information($" Log Path : {Application.StartupPath}\\logs\\TaskBarDrag&drop.log");
               
             }
            
@@ -246,17 +253,17 @@ namespace TaskBarDragAndDropNoUAC
 
             try
             {
-
+                Log.Information("load settings");
                 chekbox_log.Checked = Conf.Default.showlog;
                 MouseIsDragging.Interval = Conf.Default.mousehookint;
-                SelectedTimer.Interval = 500; //////////// check for later  SelectedTimer.Interval = 500; Conf.Default.mousehookint;
+                SelectedTimer.Interval = Conf.Default.clickInterval; //////////// check for later  SelectedTimer.Interval = 500; Conf.Default.mousehookint;
                 checkbox_ClickPinApp.Checked = Conf.Default.ClickPinApp;
                 checkbox_closeTray.Checked = Conf.Default.closetotray;
                 checkbox_Runatstart.Checked = Conf.Default.Runatstart;
                 txt_mousehook.Text = Conf.Default.mousehookint.ToString();
                 txt_clickInterval.Text = Conf.Default.clickInterval.ToString();
                 btn_resetsetting.Visible = false;
-
+                Log.Information($"clickInterval: {Conf.Default.clickInterval}");
                 btn_savesetting.Visible = false;
                 ShowInTaskbar = false;
 
@@ -268,7 +275,7 @@ namespace TaskBarDragAndDropNoUAC
                 }
                 // Define the callback function for the mouse hook
                 _mouseProc = HookCallback;
-
+                
                 // Set up the low-level mouse hook
                 _hookID = SetHook(_mouseProc);
 
@@ -291,9 +298,9 @@ namespace TaskBarDragAndDropNoUAC
 
 
         //check for Multi-scren and active screen
-        private string MyScreen()
+        private string MyScreen(out string hWsc)
         {
-            string hWsc;
+            
             Screen screen = Screen.FromPoint(Cursor.Position);
             if (screen.Primary) // use active desktop
             {
@@ -305,7 +312,7 @@ namespace TaskBarDragAndDropNoUAC
                 hWsc = "Shell_SecondaryTrayWnd";
 
             }
-            Log.Information($"Display: {hWsc}");
+            Log.Information($"My Screen FN => Display: {hWsc}");
 
             return hWsc;
         }
@@ -316,7 +323,7 @@ namespace TaskBarDragAndDropNoUAC
         public bool SearchIconAndFocusNEW(String trayClassName, System.Drawing.Point cursorPnt)
         {
             SelectedTimer.Stop();
-            cursorPnt = Cursor.Position;
+           
            Log.Information($"Search For Icon And Focus NEW FN ");
 
             try
@@ -326,9 +333,10 @@ namespace TaskBarDragAndDropNoUAC
                     if (CheckCurrentMouseareaWithRectArea(selectedIcon.Current.BoundingRectangle))
                     {
 
-                        Log.Warning($"Mouse is On Last Selected Icon  - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} Area : {selectedIcon.Current.BoundingRectangle} - Exit Search Function");
-                        waitforFunc = false;
-                        // SelectedTimer.Start();
+                        Log.Warning($"Mouse is over the Last Selected Icon  - Mouse X:  {cursorPnt.X} , Mouse Y:  {cursorPnt.Y} Area : {selectedIcon.Current.BoundingRectangle} - Exit Search Function");
+                            waitforFunc = true;
+                         SelectedTimer.Start();
+                        selectedIcon = null;
                         return true;
                     }
 
@@ -339,13 +347,11 @@ namespace TaskBarDragAndDropNoUAC
 
                 if (taskbar == null)
                 {
-                    StackTrace stackTrace = new StackTrace(true);
-                    StackFrame frame = stackTrace.GetFrame(0);
-                    int lineNumber = frame.GetFileLineNumber();
-                    string callerMethod = frame.GetMethod().Name;
-                    Log.Warning($"TRAY  IS Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,   Method: {callerMethod}, Line: {lineNumber} , Display: {trayClassName} ,Search Area : {searchArea.ToString()} - Exit Search Function");
-                    waitforFunc = false;
-                    //SelectedTimer.Start();
+                    
+                    Log.Warning($"TaskBar  is Null - Mouse X:  {cursorPnt.X} , Mouse Y:  {cursorPnt.Y}, Display: {trayClassName} ,Search Area : {searchArea} - Exit Search Function");
+                    waitforFunc = true;
+                    SelectedTimer.Start();
+                    //selectedIcon = null;
                     return false;
                 }
 
@@ -356,15 +362,15 @@ namespace TaskBarDragAndDropNoUAC
                 if (taskbarElement == null)
                 {
 
-                    Log.Warning($"TaskBar ICONS Is Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,  Display: {trayClassName} - Exit Search Function");
+                    Log.Warning($"TaskBar Elements list Is Null - Mouse X:  {cursorPnt.X} , Mouse Y:  {cursorPnt.Y} ,  Display: {trayClassName} - Exit Search Function");
                     waitforFunc = false;
-                    //SelectedTimer.Start();
+                    SelectedTimer.Start();
                     return false;
                 }
                 TreeWalker walker = TreeWalker.ControlViewWalker;
             
 
-                while (taskbarElement != null && !taskbarElement.Current.BoundingRectangle.Contains(new System.Windows.Point(cursorPnt.X, cursorPnt.Y)))
+                while (taskbarElement != null && !taskbarElement.Current.BoundingRectangle.Contains(new System.Windows.Point(Cursor.Position.X, Cursor.Position.Y)))
                 {
 
                     taskbarElement = walker.GetNextSibling(taskbarElement);
@@ -374,9 +380,10 @@ namespace TaskBarDragAndDropNoUAC
                 if (taskbarElement == null)
                 {
 
-                    Log.Warning($"taskbarElement IS Null - Mouse X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y} ,    Display: {trayClassName} - Exit Search Function");
-                    // SelectedTimer.Start();
-                    waitforFunc = false;
+                    Log.Warning($"Taskbar Icon is Null - Mouse X:  {cursorPnt.X} , Mouse Y:  {cursorPnt.Y} ,    Display: {trayClassName} - Exit Search Function");
+                    waitforFunc = true;
+                    SelectedTimer.Start();
+                    
                     return false;
                 }
 
@@ -389,8 +396,9 @@ namespace TaskBarDragAndDropNoUAC
                     InvokePattern invokePattern = taskbarElement.GetCurrentPattern(InvokePattern.Pattern) as InvokePattern;
                     invokePattern.Invoke();
 
-                    Log.Information("auto Click, done");
+                    Log.Information("Auto Click, done");
                     waitforFunc = false;
+                    SelectedTimer.Stop();
 
                 }
                 
@@ -403,6 +411,7 @@ namespace TaskBarDragAndDropNoUAC
                     invokePattern.Invoke();
                     Log.Information("Running Window Click, done");
                     waitforFunc = false;
+                    SelectedTimer.Stop();
                 }
                 else
                 {
@@ -410,11 +419,12 @@ namespace TaskBarDragAndDropNoUAC
                     Log.Information("just Focus- no running Window"); // focus: show default win tooltip
                     waitforFunc = false;
                     taskbarElement.SetFocus();
+                    SelectedTimer.Stop();
 
                 }
 
                 selectedIcon = taskbarElement;
-
+                SelectedTimer.Stop();
             }
 
             catch (COMException ex)
@@ -438,7 +448,7 @@ namespace TaskBarDragAndDropNoUAC
         /// Main Function : select Element and invoke or Focus Based on mouse position
         /// 
         /// OLD FUNCTION/ big bugy  high resource usage function
-        public void SearchIconAndFocus(AutomationElementCollection TaskbarItemCollectinHolder, System.Drawing.Point MousePos, out AutomationElement SelectedIconfn)
+       /* public void SearchIconAndFocus(AutomationElementCollection TaskbarItemCollectinHolder, System.Drawing.Point MousePos, out AutomationElement SelectedIconfn)
         {
             SelectedIconfn = null; // Initialize to null
             int counter = 0;
@@ -521,7 +531,7 @@ namespace TaskBarDragAndDropNoUAC
 
         }
 
-
+        */
 
         // add/remove to/from start-up
         private void checkbox_Runatstart_CheckedChanged(object sender, EventArgs e)
@@ -617,8 +627,11 @@ namespace TaskBarDragAndDropNoUAC
             MouseIsDragging.Interval = 5;
             txt_mousehook.Text = "5";
             txt_clickInterval.Text = "500";
+            
             Conf.Default.Save();
             Conf.Default.Reload();
+            
+
             btn_resetsetting.Visible = false;
             btn_savesetting.Visible = false;
         }
@@ -679,6 +692,7 @@ namespace TaskBarDragAndDropNoUAC
 
             try
             {
+                Log.Information("Invoke NotifyIcon1");
                 var msbtn = MouseButtons.Left;
                 if (SystemInformation.MouseButtonsSwapped) { msbtn = MouseButtons.Right; }
                 if (e.Button == msbtn)
@@ -768,14 +782,20 @@ namespace TaskBarDragAndDropNoUAC
         {
             try
             {
-                TrayhWnd = MyScreen();
-                RECTOUT TRAY_RECTOUT;
+                
+                Thread getdesk = new Thread(() => MyScreen(out TrayhWnd));
+                getdesk.Start();
+                getdesk.Join();
+                Log.Information("thread GetDesk");
+                RECTOUT TRAY_RECTOUT = new RECTOUT();
                
-
                 var TrayHANDLE = FindWindow(TrayhWnd, null);
-                GetWindowRect(TrayHANDLE, out TRAY_RECTOUT);
-                Rect TRAY_rect_AREA = new Rect(TRAY_RECTOUT.Left, TRAY_RECTOUT.Top, Math.Abs(TRAY_RECTOUT.Left - TRAY_RECTOUT.Right), Math.Abs(TRAY_RECTOUT.Top - TRAY_RECTOUT.Bottom));
+               Thread getwinrect = new Thread(() => GetWindowRect(TrayHANDLE, out TRAY_RECTOUT));
+                getwinrect.Start();
+                getwinrect.Join();
+                Log.Information("thread GetWinRect");
 
+                Rect TRAY_rect_AREA = new Rect(TRAY_RECTOUT.Left, TRAY_RECTOUT.Top, Math.Abs(TRAY_RECTOUT.Left - TRAY_RECTOUT.Right), Math.Abs(TRAY_RECTOUT.Top - TRAY_RECTOUT.Bottom));
 
                 if (isDragging && TRAY_rect_AREA.Contains(new Rect(ConvertDraw2system(dragStartPoint).X, ConvertDraw2system(dragStartPoint).Y, 1, 1)))
                 {
@@ -783,7 +803,7 @@ namespace TaskBarDragAndDropNoUAC
                     waitforFunc = false;
                     isDragging = false;
                     clicked = false;
-                    Log.Warning($"using timer Mouse drag on Tray Area  X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y}");
+                    Log.Warning($"Timer  Check => Mouse drag on Tray Area  X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y}");
                     //selectedIcon = null;
                     SelectedTimer.Stop();
                     return;
@@ -793,23 +813,25 @@ namespace TaskBarDragAndDropNoUAC
                 else
                 {
 
-                    if (selectedIcon != null)
+                    if ( selectedIcon != null)
                     {
-
+                        
                         if (isDragging && !selectedIcon.Current.BoundingRectangle.Contains(new Rect(ConvertDraw2system(Cursor.Position).X, ConvertDraw2system(Cursor.Position).Y, 5, 5)))
                         {
-
-                            SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
+                            Log.Information("MainSearchthread 1");
+                            //SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
+                            Thread MainSearchthread = new Thread(() => SearchIconAndFocusNEW(TrayhWnd, Cursor.Position));
+                            MainSearchthread.Start();
+                            MainSearchthread.Join();
                         }
                         else
                         {
 
-                            Log.Warning(" Timer Check: mouse on same Old Icon Again- no action just focus");
+                            Log.Warning(" Timer Check => mouse on same Old Icon Again- no action just focus");
                             selectedIcon.SetFocus(); //////////////////// maybe we neeed to check if element has keyboard focus here later : DONE
                             SelectedTimer.Stop();
-                            //selectedIcon = null;
+                            selectedIcon = null;
                            
-
                             waitforFunc = false;
                         }
 
@@ -818,17 +840,21 @@ namespace TaskBarDragAndDropNoUAC
                     {
                         if (isDragging && CheckCurrentMouseareaWithRectArea(TRAY_rect_AREA)) /// && !TRAY_rect_AREA.Contains(new Rect(ConvertDraw2system(dragStartPoint).X,     ConvertDraw2system(dragStartPoint).Y, 5, 5)))// && SelectedIcon == null )//|| !CheckCurrentMouseareaWithRectArea(SelectedIcon.Current.BoundingRectangle)))
                         {
-
+                            Log.Information("MainSearchthread 2");
                             // If we are already dragging and the mouse is within the TRAY_rect_AREA but not within the small 5x5 rect around drag start point
                             // SearchIconAndFocus(TaskBarIconCollection, Cursor.Position, out SelectedIcon); // Search for an icon in the taskbar and focus on it
-                            SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
+                            Thread MainSearchthread = new Thread(() => SearchIconAndFocusNEW(TrayhWnd, Cursor.Position));
+                            MainSearchthread.Start();
+                           MainSearchthread.Join();
+                          
+                            //SearchIconAndFocusNEW(TrayhWnd, Cursor.Position);
                         }
                         else
                         {
-                            Log.Warning(" Timer Check: mouse out of Tray Area- no action");
+                            Log.Warning(" Timer Check => mouse out of Tray Area - no action");
 
                             SelectedTimer.Stop();
-
+                            selectedIcon = null;
                             waitforFunc = false;
                         }
 
@@ -836,8 +862,11 @@ namespace TaskBarDragAndDropNoUAC
 
 
                 }
-                // }
 
+                SelectedTimer.Stop();
+                selectedIcon = null;
+                waitforFunc = false;
+                Log.Information("Timer Done,");
 
             }
             catch (COMException ex)
@@ -850,6 +879,9 @@ namespace TaskBarDragAndDropNoUAC
             catch (Exception ex)
             {
                 Log.Fatal($"{ex.Message} {ex.Source} {ex.StackTrace} {ex.InnerException}");
+                SelectedTimer.Stop();
+                selectedIcon = null;
+                waitforFunc = false;
             }
 
         }
@@ -925,10 +957,12 @@ namespace TaskBarDragAndDropNoUAC
                     if (Hresult >= 2)
                     {
                         MessageBox.Show("Done...", "initial Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        Log.Warning("initial setup OK");
                     }
                     else
                     {
                         hInstance = IntPtr.Zero;
+                        Log.Warning($"initial setup Failed - Hresult : {Hresult} ");
                     }
 
 
@@ -982,7 +1016,7 @@ namespace TaskBarDragAndDropNoUAC
 
             else
             {
-
+                Log.Warning("initial setup Failed - User Based");
                 MessageBox.Show("If the app isn't working, you can perform this initial setup at a later time.", "Canceling..!!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
 
@@ -1001,9 +1035,7 @@ namespace TaskBarDragAndDropNoUAC
             }
             else
             {
-                // fileWriter.Flush();
-                /// fileWriter.Close();
-                /// 
+                Log.Warning("MainForm Closing..."); 
                 // Unhook the mouse hook when the application exits
                 UnhookWindowsHookEx(_hookID);
             }
@@ -1029,6 +1061,62 @@ namespace TaskBarDragAndDropNoUAC
             Process.Start("https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC");
         }
 
+        private void btn_openLog_Click(object sender, EventArgs e)
+        {
+            Process.Start($"{Application.StartupPath}\\logs\\");
+        }
+
+        private void ntf_logfile_Click(object sender, EventArgs e)
+        {
+            Process.Start($"{Application.StartupPath}\\logs\\");
+        }
+
+        private void ntf_gamemode_Click(object sender, EventArgs e)
+        {
+            if (ntf_gamemode.Text== "Pause Mouse Hook")
+            {
+                try
+                {
+                    Log.Warning("Temp Pause Hook");
+                    UnhookWindowsHookEx(_hookID);
+                    ntf_gamemode.Text = " Resume Mouse Hook";
+                    ntf_gamemode.Checked = false;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed, You May Restart The App.", "Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Log.Error($"Failed to pause Hook : {ex.ToString()}");
+                }
+            }
+            else
+            {
+
+                try
+                {
+                    Log.Warning("Resume Pause Hook");
+
+                    // Define the callback function for the mouse hook
+                    _mouseProc = HookCallback;
+
+                    // Set up the low-level mouse hook
+                    _hookID = SetHook(_mouseProc);
+                    ntf_gamemode.Text = "Pause Mouse Hook";
+                    ntf_gamemode.Checked = true;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Failed, You May Restart The App.", "Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Log.Error($"Failed to pause Hook : {ex.ToString()}");
+                }
+               
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+
+        }
+
         private void chekbox_log_CheckedChanged(object sender, EventArgs e)
         {
             if (chekbox_log.Checked)
@@ -1049,6 +1137,7 @@ namespace TaskBarDragAndDropNoUAC
 
 
             }
+         
         }
 
         // Method to set up the mouse hook
@@ -1119,12 +1208,23 @@ namespace TaskBarDragAndDropNoUAC
         {
             try
             {
-                if (clicked && !waitforFunc)
+               /* Rect tmprect;
+                if (selectedIcon != null)
+                {
+                    tmprect = selectedIcon.Current.BoundingRectangle;
+                }
+                else
+                {
+                    tmprect = new Rect(0, 0, 1, 1);
+                }*/
+
+                if (clicked && !waitforFunc )//&& !tmprect.Contains(Cursor.Position.X,Cursor.Position.Y))
                 {
                     //ResetTimerAndStartDragging(mouseInfo);
 
                     SelectedTimer.Stop();
                     SelectedTimer.Start();
+                    
                     isDragging = true;
                     Log.Warning("Dragging: X=" + mouseInfo.pt.x + ", Y=" + mouseInfo.pt.y);
                     waitforFunc = true;

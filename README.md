@@ -13,13 +13,14 @@ TaskBar Drag And Drop(No UAC) allows you to enable Drag & Drop functionality on 
 - Enable <code>running pinned apps</code> from the taskbar while dragging files. 
 - Enables Drag & Drop on the Taskbar in Windows 11 without requiring <code>UAC</code> or changing the taskbar to <code>classic mode</code>.
 - Enable drag and drop on the built-in Administrator account.
-- Tested on Windows 11 22H2 (OS Build: 22621.2428 and 22621.2361).
+- Tested on Windows 11 22H2 (OS Build: 22621.2361 and 22621.2428).
 - Supports multiple screens.
 
 ## Installation
 
 1. Download the latest release from the [Releases](https://github.com/Mast3r0mid/TaskBarDragAndDropNoUAC/releases/tag/release) page.
-2. Run the executable file to enable Drag & Drop on your Windows 11 Taskbar.
+2. Extract Zip file.
+3. Run the executable file to enable Drag & Drop on your Windows 11 Taskbar.
 
 ## Usage
 

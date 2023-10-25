@@ -109,5 +109,10 @@ namespace TaskBarDragAndDrop
 
 
         }
+
+        private void tableLayoutPanel_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
     }
 }

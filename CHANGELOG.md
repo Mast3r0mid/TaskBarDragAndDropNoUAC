@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## Version 1.1.1 25/10/2023
+- **Changes**:
+ - Added the ability to pause and resume the Mouse hook.
+ - Changed the log files directory.
+
+-**Fix**
+ -some bug fixes.
+
 ## Version 1.1.0 23/10/2023
 # New Feature
 - **Logging**: Integrated Serilog as the main event logger for comprehensive event tracking and management.

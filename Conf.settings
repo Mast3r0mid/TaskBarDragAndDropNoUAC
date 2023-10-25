@@ -18,7 +18,7 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="RunningWin" Type="System.String" Scope="User">
-      <Value Profile="(Default)">running window</Value>
+      <Value Profile="(Default)">runningwindow</Value>
     </Setting>
     <Setting Name="DisLan" Type="System.String" Scope="User">
       <Value Profile="(Default)">en-GB</Value>
@@ -27,7 +27,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="multiWin" Type="System.String" Scope="User">
-      <Value Profile="(Default)">running windows</Value>
+      <Value Profile="(Default)">runningwindows</Value>
     </Setting>
   </Settings>
 </SettingsFile>
