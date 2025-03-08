@@ -6,11 +6,11 @@ using System.Runtime.CompilerServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("TaskBar DragAndDrop(NO UAC)-Beta")]
+[assembly: AssemblyTitle("TaskBar DragAndDrop(NO UAC) - Beta")]
 [assembly: AssemblyDescription("Enable Drag & Drop functionality on the Taskbar in Windows 11 even when UAC (User Account Control) is turned off or when you are using the Built-in Administrator Account")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TaskBar DragAndDrop(NO UAC)-Beta")]
+[assembly: AssemblyProduct("TaskBar DragAndDrop(NO UAC) - Beta")]
 [assembly: AssemblyCopyright("Copyright © 2025 Mast3r0mid")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
