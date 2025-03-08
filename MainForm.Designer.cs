@@ -1,6 +1,7 @@
 ﻿namespace TaskBarDragAndDropNoUAC
 {
     partial class MainForm
+ 
     {
         /// <summary>
         /// Required designer variable.
@@ -33,9 +34,13 @@
             this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.ntf_settings = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_gamemode = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.ntf_checkupdate = new System.Windows.Forms.ToolStripMenuItem();
+            this.ntf_logfile = new System.Windows.Forms.ToolStripMenuItem();
             this.ntf_issue = new System.Windows.Forms.ToolStripMenuItem();
             this.ntf_about = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.ntf_exit = new System.Windows.Forms.ToolStripMenuItem();
             this.MouseIsDragging = new System.Windows.Forms.Timer(this.components);
             this.checkbox_Runatstart = new System.Windows.Forms.CheckBox();
@@ -57,6 +62,7 @@
             this.btn_localize = new System.Windows.Forms.Button();
             this.chekbox_log = new System.Windows.Forms.CheckBox();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.btn_openLog = new System.Windows.Forms.Button();
             this.contextMenuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
@@ -78,53 +84,85 @@
             // 
             this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.ntf_settings,
+            this.ntf_gamemode,
+            this.toolStripSeparator2,
             this.ntf_checkupdate,
+            this.ntf_logfile,
             this.ntf_issue,
             this.ntf_about,
+            this.toolStripSeparator1,
             this.ntf_exit});
             this.contextMenuStrip1.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.HorizontalStackWithOverflow;
             this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(175, 114);
+            this.contextMenuStrip1.Size = new System.Drawing.Size(177, 170);
             // 
             // ntf_settings
             // 
+            this.ntf_settings.Image = global::TaskBarDragAndDrop.Properties.Resources.drag_and_drop;
             this.ntf_settings.Name = "ntf_settings";
-            this.ntf_settings.Size = new System.Drawing.Size(174, 22);
+            this.ntf_settings.Size = new System.Drawing.Size(176, 22);
             this.ntf_settings.Text = "Open TaskBar D&&D";
             this.ntf_settings.Click += new System.EventHandler(this.ntf_settings_Click);
             // 
+            // ntf_gamemode
+            // 
+            this.ntf_gamemode.Checked = true;
+            this.ntf_gamemode.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.ntf_gamemode.Name = "ntf_gamemode";
+            this.ntf_gamemode.Size = new System.Drawing.Size(176, 22);
+            this.ntf_gamemode.Text = "Pause Mouse Hook";
+            this.ntf_gamemode.Click += new System.EventHandler(this.ntf_gamemode_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(173, 6);
+            // 
             // ntf_checkupdate
             // 
+            this.ntf_checkupdate.Image = global::TaskBarDragAndDrop.Properties.Resources.GitHub_Logo_650x366;
             this.ntf_checkupdate.Name = "ntf_checkupdate";
-            this.ntf_checkupdate.Size = new System.Drawing.Size(174, 22);
+            this.ntf_checkupdate.Size = new System.Drawing.Size(176, 22);
             this.ntf_checkupdate.Text = "&Check For Update";
             this.ntf_checkupdate.Click += new System.EventHandler(this.ntf_checkupdate_Click);
+            // 
+            // ntf_logfile
+            // 
+            this.ntf_logfile.Name = "ntf_logfile";
+            this.ntf_logfile.Size = new System.Drawing.Size(176, 22);
+            this.ntf_logfile.Text = "Log Files";
+            this.ntf_logfile.Click += new System.EventHandler(this.ntf_logfile_Click);
             // 
             // ntf_issue
             // 
             this.ntf_issue.Name = "ntf_issue";
-            this.ntf_issue.Size = new System.Drawing.Size(174, 22);
+            this.ntf_issue.Size = new System.Drawing.Size(176, 22);
             this.ntf_issue.Text = "&Report Issue";
             this.ntf_issue.Click += new System.EventHandler(this.ntf_issue_Click);
             // 
             // ntf_about
             // 
             this.ntf_about.Name = "ntf_about";
-            this.ntf_about.Size = new System.Drawing.Size(174, 22);
+            this.ntf_about.Size = new System.Drawing.Size(176, 22);
             this.ntf_about.Text = "About";
             this.ntf_about.Click += new System.EventHandler(this.ntf_about_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(173, 6);
             // 
             // ntf_exit
             // 
             this.ntf_exit.Name = "ntf_exit";
-            this.ntf_exit.Size = new System.Drawing.Size(174, 22);
+            this.ntf_exit.Size = new System.Drawing.Size(176, 22);
             this.ntf_exit.Text = "Exit";
             this.ntf_exit.Click += new System.EventHandler(this.ntf_exit_Click);
             // 
             // MouseIsDragging
             // 
             this.MouseIsDragging.Interval = 5;
-            
+            this.MouseIsDragging.Tick += new System.EventHandler(this.MouseIsDragging_Tick);
             // 
             // checkbox_Runatstart
             // 
@@ -305,11 +343,22 @@
             this.chekbox_log.UseVisualStyleBackColor = true;
             this.chekbox_log.CheckedChanged += new System.EventHandler(this.chekbox_log_CheckedChanged);
             // 
+            // btn_openLog
+            // 
+            this.btn_openLog.Location = new System.Drawing.Point(289, 116);
+            this.btn_openLog.Name = "btn_openLog";
+            this.btn_openLog.Size = new System.Drawing.Size(75, 43);
+            this.btn_openLog.TabIndex = 17;
+            this.btn_openLog.Text = "Open Log Folder";
+            this.btn_openLog.UseVisualStyleBackColor = true;
+            this.btn_openLog.Click += new System.EventHandler(this.btn_openLog_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(376, 272);
+            this.Controls.Add(this.btn_openLog);
             this.Controls.Add(this.chekbox_log);
             this.Controls.Add(this.btn_localize);
             this.Controls.Add(this.pictureBox3);
@@ -335,6 +384,7 @@
             this.WindowState = System.Windows.Forms.FormWindowState.Minimized;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             this.Load += new System.EventHandler(this.MainForm_Load);
+            this.Shown += new System.EventHandler(this.MainForm_Shown);
             this.Resize += new System.EventHandler(this.MainForm_Resize);
             this.contextMenuStrip1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox3)).EndInit();
@@ -373,6 +423,11 @@
         private System.Windows.Forms.Button btn_localize;
         private System.Windows.Forms.CheckBox chekbox_log;
         private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.Button btn_openLog;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem ntf_gamemode;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem ntf_logfile;
     }
 }
 

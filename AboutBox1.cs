@@ -4,7 +4,7 @@ using System.Windows.Forms;
 
 namespace TaskBarDragAndDrop
 {
-    partial class AboutBox1 : Form
+    public partial class AboutBox1 : Form
     {
         public AboutBox1()
         {
@@ -107,6 +107,11 @@ namespace TaskBarDragAndDrop
         private void AboutBox1_Load(object sender, EventArgs e)
         {
 
+
+        }
+
+        private void tableLayoutPanel_Paint(object sender, PaintEventArgs e)
+        {
 
         }
     }
