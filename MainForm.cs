@@ -334,16 +334,17 @@ namespace TaskBarDragAndDropNoUAC
             try
             {
                 if (selectedIcon != null)
+                {
                     if (CheckCurrentMouseareaWithRectArea(selectedIcon.Current.BoundingRectangle))
                     {
                         Log.Warning(
                             $"Mouse is over the Last Selected Icon  - Mouse X:  {cursorPnt.X} , Mouse Y:  {cursorPnt.Y} Area : {selectedIcon.Current.BoundingRectangle} - Exit Search Function");
                         waitforFunc = true;
                         SelectedTimer.Start();
-                        selectedIcon = null;
+                        //selectedIcon = null;
                         return true;
                     }
-
+                }
                 var searchArea = new Rect(cursorPnt.X, cursorPnt.Y, 1, 1);
                 var taskbar = AutomationElement.RootElement.FindFirst(
                     TreeScope.Children, new PropertyCondition(AutomationElement.ClassNameProperty, trayClassName));
@@ -410,6 +411,7 @@ namespace TaskBarDragAndDropNoUAC
                 }
                 else
                 {
+
                     Log.Information($"just Focus- no running Window: {taskbarElement.Current.Name}");
                     waitforFunc = false;
                     taskbarElement.SetFocus();
@@ -681,7 +683,7 @@ namespace TaskBarDragAndDropNoUAC
                     isDragging = false;
                     clicked = false;
                     Log.Warning($"Timer  Check => Mouse drag on Tray Area  X:  {Cursor.Position.X} , Mouse Y:  {Cursor.Position.Y}");
-                    //selectedIcon = null;
+                    selectedIcon = null;
                     SelectedTimer.Stop();
                     return;
 
@@ -707,7 +709,7 @@ namespace TaskBarDragAndDropNoUAC
                             Log.Warning(" Timer Check => mouse on same Old Icon Again- no action just focus");
                             selectedIcon.SetFocus(); //////////////////// maybe we neeed to check if element has keyboard focus here later : DONE
                             SelectedTimer.Stop();
-                            selectedIcon = null;
+                           // selectedIcon = null;
 
                             waitforFunc = false;
                         }
@@ -731,7 +733,7 @@ namespace TaskBarDragAndDropNoUAC
                             Log.Warning(" Timer Check => mouse out of Tray Area - no action");
 
                             SelectedTimer.Stop();
-                            selectedIcon = null;
+                            //selectedIcon = null;
                             waitforFunc = false;
                         }
 
@@ -741,7 +743,7 @@ namespace TaskBarDragAndDropNoUAC
                 }
 
                 SelectedTimer.Stop();
-                selectedIcon = null;
+               // selectedIcon = null;
                 waitforFunc = false;
                 Log.Information("Timer Done,");
 
