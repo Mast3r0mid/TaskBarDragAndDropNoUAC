@@ -343,6 +343,10 @@
             this.chekbox_log.UseVisualStyleBackColor = true;
             this.chekbox_log.CheckedChanged += new System.EventHandler(this.chekbox_log_CheckedChanged);
             // 
+            // timer1
+            // 
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
             // btn_openLog
             // 
             this.btn_openLog.Location = new System.Drawing.Point(289, 116);

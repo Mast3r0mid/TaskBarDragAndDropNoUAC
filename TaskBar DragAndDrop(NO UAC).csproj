@@ -52,8 +52,7 @@
     <UseWinFormsOutOfProcDesigner>False</UseWinFormsOutOfProcDesigner>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>TaskBarDragAndDropNoUAC.Program</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationIcon>drag_and_drop_eda_icon.ico</ApplicationIcon>
@@ -87,6 +86,11 @@
   </PropertyGroup>
   <PropertyGroup>
     <AssemblyOriginatorKeyFile>TaskBar Drag &amp; Drop %28NO UAC%29.pfx</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Autofac, Version=8.2.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
